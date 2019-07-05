@@ -108,6 +108,9 @@ namespace std
     { /* DUMMY BODY */ };
 
     template<class T>
+    inline constexpr bool is_integral_v = is_integral<T>::value;
+
+    template<class T>
     struct is_floating_point
         : aux::is_one_of<remove_cv_t<T>, float, double, long double>
     { /* DUMMY BODY */ };

@@ -338,22 +338,52 @@ namespace std
 
             basic_istream<Char, Traits>& operator>>(float& x)
             {
-                // TODO: implement
-                __unimplemented();
+                sentry sen{*this, false};
+
+                if (sen)
+                {
+                    using num_get = num_get<Char, istreambuf_iterator<Char, Traits>>;
+                    auto err = ios_base::goodbit;
+
+                    auto loc = this->getloc();
+                    use_facet<num_get>(loc).get(*this, 0, *this, err, x);
+                    this->setstate(err);
+                }
+
                 return *this;
             }
 
             basic_istream<Char, Traits>& operator>>(double& x)
             {
-                // TODO: implement
-                __unimplemented();
+                sentry sen{*this, false};
+
+                if (sen)
+                {
+                    using num_get = num_get<Char, istreambuf_iterator<Char, Traits>>;
+                    auto err = ios_base::goodbit;
+
+                    auto loc = this->getloc();
+                    use_facet<num_get>(loc).get(*this, 0, *this, err, x);
+                    this->setstate(err);
+                }
+
                 return *this;
             }
 
             basic_istream<Char, Traits>& operator>>(long double& x)
             {
-                // TODO: implement
-                __unimplemented();
+                sentry sen{*this, false};
+
+                if (sen)
+                {
+                    using num_get = num_get<Char, istreambuf_iterator<Char, Traits>>;
+                    auto err = ios_base::goodbit;
+
+                    auto loc = this->getloc();
+                    use_facet<num_get>(loc).get(*this, 0, *this, err, x);
+                    this->setstate(err);
+                }
+
                 return *this;
             }
 

@@ -137,7 +137,7 @@ namespace std
                 if ((base.flags() & ios_base::boolalpha) == 0)
                 {
                     int8_t tmp{};
-                    in = get_integral_<int64_t>(in, end, base, err, tmp);
+                    in = get_<int64_t>(in, end, base, err, tmp);
 
                     if (tmp == 0)
                         v = false;
@@ -222,58 +222,55 @@ namespace std
             iter_type do_get(iter_type in, iter_type end, ios_base& base,
                              ios_base::iostate& err, long& v) const
             {
-                return get_integral_<int64_t>(in, end, base, err, v);
+                return get_<int64_t>(in, end, base, err, v);
             }
 
             iter_type do_get(iter_type in, iter_type end, ios_base& base,
                              ios_base::iostate& err, long long& v) const
             {
-                return get_integral_<int64_t>(in, end, base, err, v);
+                return get_<int64_t>(in, end, base, err, v);
             }
 
             iter_type do_get(iter_type in, iter_type end, ios_base& base,
                              ios_base::iostate& err, unsigned short& v) const
             {
-                return get_integral_<uint64_t>(in, end, base, err, v);
+                return get_<uint64_t>(in, end, base, err, v);
             }
 
             iter_type do_get(iter_type in, iter_type end, ios_base& base,
                              ios_base::iostate& err, unsigned int& v) const
             {
-                return get_integral_<uint64_t>(in, end, base, err, v);
+                return get_<uint64_t>(in, end, base, err, v);
             }
 
             iter_type do_get(iter_type in, iter_type end, ios_base& base,
                              ios_base::iostate& err, unsigned long& v) const
             {
-                return get_integral_<uint64_t>(in, end, base, err, v);
+                return get_<uint64_t>(in, end, base, err, v);
             }
 
             iter_type do_get(iter_type in, iter_type end, ios_base& base,
                              ios_base::iostate& err, unsigned long long& v) const
             {
-                return get_integral_<uint64_t>(in, end, base, err, v);
+                return get_<uint64_t>(in, end, base, err, v);
             }
 
             iter_type do_get(iter_type in, iter_type end, ios_base& base,
                              ios_base::iostate& err, float& v) const
             {
-                // TODO: implement
-                return in;
+                return get_<long double>(in, end, base, err, v);
             }
 
             iter_type do_get(iter_type in, iter_type end, ios_base& base,
                              ios_base::iostate& err, double& v) const
             {
-                // TODO: implement
-                return in;
+                return get_<long double>(in, end, base, err, v);
             }
 
             iter_type do_get(iter_type in, iter_type end, ios_base& base,
                              ios_base::iostate& err, long double& v) const
             {
-                // TODO: implement
-                return in;
+                return get_<long double>(in, end, base, err, v);
             }
 
             iter_type do_get(iter_type in, iter_type end, ios_base& base,
@@ -285,47 +282,77 @@ namespace std
 
         private:
             template<class BaseType, class T>
-            iter_type get_integral_(iter_type in, iter_type end, ios_base& base,
-                                    ios_base::iostate& err, T& v) const
+            iter_type get_(iter_type in, iter_type end, ios_base& base,
+                           ios_base::iostate& err, T& v) const
             {
                 BaseType res{};
-                unsigned int num_base{10};
 
-                auto basefield = (base.flags() & ios_base::basefield);
-                if (basefield == ios_base::oct)
-                    num_base = 8;
-                else if (basefield == ios_base::hex)
-                    num_base = 16;
+                size_t size{};
+                if constexpr (is_floating_point_v<BaseType>)
+                    size = fill_buffer_floating_point_(in, end, base);
+                else
+                    size = fill_buffer_integral_(in, end, base);
 
-                auto size = fill_buffer_integral_(in, end, base);
                 if (size > 0)
                 {
                     int olderrno{errno};
                     errno = EOK;
                     char *endptr = NULL;
 
-                    if constexpr (is_signed<BaseType>::value)
-                        res = ::strtoll(base.buffer_, &endptr, num_base);
+                    static_assert(
+                        is_integral_v<BaseType> || is_floating_point_v<BaseType>
+                    );
+
+                    if constexpr (is_floating_point_v<BaseType>)
+                        res = ::strtold(base.buffer_, &endptr);
                     else
-                        res = ::strtoull(base.buffer_, &endptr, num_base);
+                    { // Integral.
+                        unsigned int num_base{10};
+                        auto basefield = (base.flags() & ios_base::basefield);
+                        if (basefield == ios_base::oct)
+                            num_base = 8;
+                        else if (basefield == ios_base::hex)
+                            num_base = 16;
+
+                        if constexpr (is_signed_v<BaseType>)
+                            res = ::strtoll(base.buffer_, &endptr, num_base);
+                        else
+                            res = ::strtoull(base.buffer_, &endptr, num_base);
+                    }
 
                     if (errno != EOK || endptr == base.buffer_)
                         err |= ios_base::failbit;
 
                     errno = olderrno;
 
-                    if (res > static_cast<BaseType>(numeric_limits<T>::max()))
+                    if constexpr (is_same_v<BaseType, double> ||
+                                  is_same_v<BaseType, long double>)
                     {
-                        err |= ios_base::failbit;
-                        v = numeric_limits<T>::max();
-                    }
-                    else if (res < static_cast<BaseType>(numeric_limits<T>::min()))
-                    {
-                        err |= ios_base::failbit;
-                        v = numeric_limits<T>::min();
+                        /**
+                         * Note: This is a workaround around the absence
+                         *       of the DBL_MAX macro (and its long double
+                         *       equivalent). Once those macros are available,
+                         *       remove the outer if constexpr and the else
+                         *       branch should be used every time.
+                         */
+
+                        v = static_cast<T>(res);
                     }
                     else
-                        v = static_cast<T>(res);
+                    {
+                        if (res > static_cast<BaseType>(numeric_limits<T>::max()))
+                        {
+                            err |= ios_base::failbit;
+                            v = numeric_limits<T>::max();
+                        }
+                        else if (res < static_cast<BaseType>(numeric_limits<T>::min()))
+                        {
+                            err |= ios_base::failbit;
+                            v = numeric_limits<T>::min();
+                        }
+                        else
+                            v = static_cast<T>(res);
+                    }
                 }
                 else
                 {
@@ -343,6 +370,7 @@ namespace std
 
                 auto loc = base.getloc();
                 const auto& ct = use_facet<ctype<char_type>>(loc);
+                const auto& np = use_facet<numpunct<char_type>>(loc);
                 auto hex = ((base.flags() & ios_base::hex) != 0);
 
                 size_t i{};
@@ -358,6 +386,65 @@ namespace std
                     {
                         ++in;
                         base.buffer_[i++] = c;
+                    }
+                    else if(np.thousands_sep() && np.grouping().length() != 0)
+                    { // Skip.
+                        ++i;
+                        ++in;
+                    }
+                    else
+                        break;
+                }
+                base.buffer_[i] = char_type{};
+
+                return i;
+            }
+
+            size_t fill_buffer_floating_point_(iter_type& in, iter_type end,
+                                               ios_base& base) const
+            {
+                if (in == end)
+                    return 0;
+
+                auto loc = base.getloc();
+                const auto& ct = use_facet<ctype<char_type>>(loc);
+                const auto& np = use_facet<numpunct<char_type>>(loc);
+
+                // TODO: Support for fixed and scientific.
+                auto fixed = ((base.flags() & ios_base::fixed) != 0);
+                auto scientific = ((base.flags() & ios_base::scientific) != 0);
+
+                size_t i{};
+                if (*in == '+' || *in == '-')
+                    base.buffer_[i++] = *in++;
+
+                bool decimal_point_seen{false};
+                while (in != end && i < ios_base::buffer_size_ - 1)
+                {
+                    auto c = *in;
+                    bool discard = c == np.thousands_sep() &&
+                                   np.grouping().length() != 0;
+                    if (discard)
+                    {
+                        ++in;
+                        if (decimal_point_seen)
+                            break;
+                        else
+                            ++i;
+                    }
+                    else if (ct.is(ctype_base::digit, c))
+                    {
+                        ++in;
+                        base.buffer_[i++] = c;
+                    }
+                    else if (np.decimal_point() == c)
+                    {
+                        ++in;
+                        if (decimal_point_seen)
+                            break;
+
+                        base.buffer_[i++] = '.';
+                        decimal_point_seen = true;
                     }
                     else
                         break;
