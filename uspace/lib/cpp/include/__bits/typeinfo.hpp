@@ -54,7 +54,31 @@ namespace std
             const char* __name;
     };
 
-    // TODO: class bad_cast, bad_typeid
+    class bad_cast
+    {
+        public:
+            bad_cast() noexcept = default;
+            bad_cast(const bad_cast&) noexcept = default;
+            bad_cast& operator=(const bad_cast&) noexcept = default;
+
+            virtual const char* what() const noexcept
+            {
+                return "bad cast";
+            }
+    };
+
+    class bad_typeid
+    {
+        public:
+            bad_typeid() noexcept = default;
+            bad_typeid(const bad_typeid&) noexcept = default;
+            bad_typeid& operator=(const bad_typeid&) noexcept = default;
+
+            virtual const char* what() const noexcept
+            {
+                return "bad typeid";
+            }
+    };
 }
 
 #endif
