@@ -67,9 +67,17 @@ namespace std
     template<class T>
     struct hash;
 
-    // TODO: implement
     template<>
-    struct hash<type_index>;
+    struct hash<type_index>
+    {
+        size_t operator()(const type_index& ti) const noexcept
+        {
+            return ti.hash_code();
+        }
+
+        using result_type   = size_t;
+        using argument_type = type_index;
+    };
 }
 
 #endif
