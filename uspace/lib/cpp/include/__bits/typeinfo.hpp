@@ -63,7 +63,7 @@ namespace std
 
             virtual const char* what() const noexcept
             {
-                return "bad cast";
+                return "std::bad_cast";
             }
     };
 
@@ -76,7 +76,7 @@ namespace std
 
             virtual const char* what() const noexcept
             {
-                return "bad typeid";
+                return "std::bad_typeid";
             }
     };
 }
