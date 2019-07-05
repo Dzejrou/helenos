@@ -34,25 +34,23 @@
 
 namespace std
 {
+    class bad_alloc: public std::exception
+    {
+        public:
+            bad_alloc() = default;
+            bad_alloc(const bad_alloc&) = default;
+            bad_alloc& operator=(const bad_alloc&) = default;
+            virtual const char* what() const noexcept override;
+            virtual ~bad_alloc() = default;
+    };
 
-class bad_alloc: public std::exception
-{
-	public:
-		bad_alloc() = default;
-		bad_alloc(const bad_alloc&) = default;
-		bad_alloc& operator=(const bad_alloc&) = default;
-		virtual const char* what() const noexcept override;
-		virtual ~bad_alloc() = default;
-};
+    struct nothrow_t {};
+    extern const nothrow_t nothrow;
 
-struct nothrow_t {};
-extern const nothrow_t nothrow;
+    using new_handler = void (*)();
 
-using new_handler = void (*)();
-
-new_handler set_new_handler(new_handler);
-new_handler get_new_handler() noexcept;
-
+    new_handler set_new_handler(new_handler);
+    new_handler get_new_handler() noexcept;
 }
 
 void* operator new(std::size_t);
