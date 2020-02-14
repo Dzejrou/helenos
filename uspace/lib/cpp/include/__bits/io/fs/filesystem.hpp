@@ -29,8 +29,16 @@
 #ifndef LIBCPP_BITS_IO_FS_FILESYSTEM
 #define LIBCPP_BITS_IO_FS_FILESYSTEM
 
+#include <chrono>
 #include <cstdlib>
 #include <iosfwd>
+#include <locale>
+#include <string>
+
+// TODO: explain these
+#define LIBCPP_CONVERT_PATH(fmt) /* Ignored. */
+#define LIBCPP_CONVERT_ENC(str, loc) str
+#define LIBCPP_CONVERT_ENC_RANGE(first, last, loc) string_type{first, last}
 
 // TODO: add default function arguments
 namespace std::filesystem
@@ -41,7 +49,272 @@ namespace std::filesystem
 
     class path
     {
-        // TODO:
+        public:
+            using value_type = char;
+            using string_type = basic_string<value_type>;
+
+            static constexpr value_type preferred_separator = '/';
+
+            /**
+             * [n4659] 30.10.10.1, enumeration format:
+             */
+
+            enum format
+            {
+                native_format,
+                generic_format,
+                auto_format
+            };
+
+            /**
+             * [n4659] 30.10.8.4.1, constructors and destructor:
+             */
+
+            path() noexcept;
+            path(const path& p);
+            path(path&& p) noexcept;
+            path(string_type&& src, format fmt = auto_format);
+
+            template<class Source>
+            path(const Source& src, format fmt = auto_format)
+                : path_{src}
+            {
+                LIBCPP_CONVERT_PATH(fmt);
+            }
+
+            template<class InputIterator>
+            path(InputIterator first, InputIterator last,
+                 format fmt = auto_format)
+                : path_{first, last}
+            {
+                LIBCPP_CONVERT_PATH(fmt);
+            }
+
+            template<class Source>
+            path(const Source& src, const locale& loc, format fmt = auto_format)
+                : path_{}
+            {
+                path_ = LIBCPP_CONVERT_ENC(src, loc);
+                LIBCPP_CONVERT_PATH(fmt);
+            }
+
+            template<class InputIterator>
+            path(InputIterator first, InputIterator last, const locale& loc,
+                 format fmt = auto_format)
+                : path_{}
+            {
+                path_ = LIBCPP_CONVERT_ENC_RANGE(first, last, loc);
+                LIBCPP_CONVERT_PATH(fmt);
+            }
+
+            ~path() = default;
+
+            /**
+             * [n4659] 30.10.8.4.2, assignments:
+             */
+
+            path& operator=(const path& p);
+            path& operator=(path&& p) noexcept;
+            path& operator=(string_type&& src);
+            path& assign(string_type&& src);
+
+            template<class Source>
+            path& operator=(const Source& src)
+            {
+                // TODO:
+            }
+
+            template<class Source>
+            path& assign(const Source& src)
+            {
+                // TODO:
+            }
+
+            template<class InputIterator>
+            path& assign(InputIterator first, InputIterator last)
+            {
+                // TODO:
+            }
+
+            /**
+             * [n4659] 30.10.8.4.3, appends:
+             */
+
+            path& operator/=(const path& p);
+
+            template<class Source>
+            path& operator/=(const Source& src)
+            {
+                // TODO:
+            }
+
+            template<class Source>
+            path& append(const Source& src)
+            {
+                // TODO:
+            }
+
+            template<class InputIterator>
+            path& append(InputIterator first, InputIterator last)
+            {
+                // TODO:
+            }
+
+            /**
+             * [n4659] 30.10.8.4.4, concatenation:
+             */
+
+            path& operator+=(const path& p);
+            path& operator+=(const string_type& src);
+            /* path& operator+=(basic_string_view<value_type> src); */
+            path& operator+=(const value_type* src);
+            path& operator+=(value_type c);
+
+            template<class Source>
+            path& operator+=(const Source& src)
+            {
+                // TODO:
+            }
+
+            template<class Char>
+            path& operator+=(Char c)
+            {
+                // TODO:
+            }
+
+            template<class Source>
+            path& concat(const Source& src)
+            {
+                // TODO:
+            }
+
+            template<class InputIterator>
+            path& concat(InputIterator first, InputIterator last)
+            {
+                // TODO:
+            }
+
+            /**
+             * [n4659] 30.10.8.4.5, modifiers:
+             */
+
+            void clear() noexcept;
+            path& make_preferred();
+            path& remove_filename();
+            path& replace_filename(const path& replacement);
+            path& replace_extension(const path& replacement = path{});
+            void swap(path& p) noexcept;
+
+            /**
+             * [n4659] 30.10.8.4.6, native format observers:
+             */
+
+            const string_type& native() const noexcept;
+            const value_type* c_str() const noexcept;
+            operator string_type() const;
+
+            template<
+                class Char, class Traits = char_traits<Char>,
+                class Alloc = allocator<Char>
+            >
+            basic_string<Char, Traits, Alloc>
+            string(const Alloc& alloc = Alloc{}) const
+            {
+                // TODO:
+            }
+
+            std::string string() const;
+            std::wstring wstring() const;
+            /* std::u8string u8string() const; */
+            /* std::u16string u16string() const; */
+            /* std::u32string u32string() const; */
+
+            /**
+             * [n4659] 30.10.8.4.7, generic format observers:
+             */
+
+            template<
+                class Char, class Traits = char_traits<Char>,
+                class Alloc = allocator<Char>
+            >
+            basic_string<Char, Traits, Alloc>
+            generic_string(const Alloc& alloc = Alloc{}) const
+            {
+                // TODO:
+            }
+
+            std::string generic_string() const;
+            std::wstring generic_wstring() const;
+            /* std::u8string generic_u8string() const; */
+            /* std::u16string generic_u16string() const; */
+            /* std::u32string generic_u32string() const; */
+
+            /**
+             * [n4659] 30.10.8.4.8, compare:
+             */
+
+            int compare(const path& p) const noexcept;
+            int compare(const string_type& str) const;
+            /* int compare(basic_string_view<value_type> str) const; */
+            int compare(const value_type* str) const;
+
+            /**
+             * [n4659] 30.10.8.4.9, decomposition:
+             */
+
+            path root_name() const;
+            path root_directory() const;
+            path root_path() const;
+            path relative_path() const;
+            path parent_path() const;
+            path filename() const;
+            path stem() const;
+            path extension() const;
+
+            /**
+             * [n4659] 30.10.8.4.10, query:
+             */
+
+            bool empty() const noexcept
+            {
+                return path_.empty();
+            }
+
+            bool has_root_name() const;
+            bool has_root_directory() const;
+            bool has_root_path() const;
+            bool has_relative_path() const;
+            bool has_parent_path() const;
+            bool has_filename() const;
+            bool has_stem() const;
+            bool has_extension() const;
+            bool is_absolute() const;
+            bool is_relative() const;
+
+            /**
+             * [n4659] 30.10.8.4.11, generation:
+             */
+
+            path lexically_normal() const;
+            path lexically_relative(const path& base) const;
+            path lexically_proximate(const path& base) const;
+
+            /**
+             * [n4659] 30.10.8.5, iterators:
+             */
+
+            class iterator
+            {
+                // TODO:
+            };
+
+            using const_iterator = iterator;
+
+            iterator begin() const;
+            iterator end() const;
+
+        private:
+            string_type path_;
     };
 
     /**

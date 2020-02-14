@@ -39,6 +39,7 @@ SOVERSION = 0.0
 SOURCES = \
 	src/condition_variable.cpp \
 	src/exception.cpp \
+	src/filesystem.cpp \
 	src/future.cpp \
 	src/iomanip.cpp \
 	src/ios.cpp \
@@ -62,6 +63,7 @@ SOURCES = \
 	src/__bits/test/array.cpp \
 	src/__bits/test/bitset.cpp \
 	src/__bits/test/deque.cpp \
+	src/__bits/test/filesystem.cpp \
 	src/__bits/test/functional.cpp \
 	src/__bits/test/future.cpp \
 	src/__bits/test/list.cpp \

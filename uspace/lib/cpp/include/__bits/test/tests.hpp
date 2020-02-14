@@ -308,6 +308,15 @@ namespace std::test
             void test_packaged_task();
             void test_shared_future();
     };
+
+    class filesystem_test: public test_suite
+    {
+        public:
+            bool run(bool) override;
+            const char* name() override;
+        private:
+            void test_path();
+    };
 }
 
 #endif
