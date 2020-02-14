@@ -48,50 +48,17 @@ namespace std::filesystem
      * [n4659] 30.10.8.6, path non-member functions:
      */
 
-    void swap(path& lhs, path& rhs) noexcept
-    {
-        // TODO:
-    }
+    void swap(path& lhs, path& rhs) noexcept;
+    size_t hash_value(const path& p) noexcept;
 
-    size_t hash_value(const path& p) noexcept
-    {
-        // TODO:
-    }
+    bool operator==(const path& lhs, const path& rhs) noexcept;
+    bool operator!=(const path& lhs, const path& rhs) noexcept;
+    bool operator<(const path& lhs, const path& rhs) noexcept;
+    bool operator<=(const path& lhs, const path& rhs) noexcept;
+    bool operator>(const path& lhs, const path& rhs) noexcept;
+    bool operator>=(const path& lhs, const path& rhs) noexcept;
 
-    bool operator==(const path& lhs, const path& rhs) noexcept
-    {
-        // TODO
-    }
-
-    bool operator!=(const path& lhs, const path& rhs) noexcept
-    {
-        // TODO
-    }
-
-    bool operator<(const path& lhs, const path& rhs) noexcept
-    {
-        // TODO
-    }
-
-    bool operator<=(const path& lhs, const path& rhs) noexcept
-    {
-        // TODO
-    }
-
-    bool operator>(const path& lhs, const path& rhs) noexcept
-    {
-        // TODO
-    }
-
-    bool operator>=(const path& lhs, const path& rhs) noexcept
-    {
-        // TODO
-    }
-
-    path operator/(const path& lhs, const path& rhs)
-    {
-        // TODO:
-    }
+    path operator/(const path& lhs, const path& rhs);
 
     /**
      * [n4659] 30.10.8.6.1, path inserter and extractor:
@@ -158,15 +125,8 @@ namespace std::filesystem
      * [n4659] 30.10.13.2, range access for directory iterators:
      */
 
-    directory_iterator begin(directory_iterator it) noexcept
-    {
-        // TODO:
-    }
-
-    directory_iterator end(const directory_iterator& it) noexcept
-    {
-        // TODO:
-    }
+    directory_iterator begin(directory_iterator it) noexcept;
+    directory_iterator end(const directory_iterator& it) noexcept;
 
     /**
      * [n4659] 30.10.14, recursive directory iterators:
@@ -182,16 +142,10 @@ namespace std::filesystem
      */
 
     recursive_directory_iterator
-    begin(recursive_directory_iterator it) noexcept
-    {
-        // TODO:
-    }
+    begin(recursive_directory_iterator it) noexcept;
 
     recursive_directory_iterator
-    end(const recursive_directory_iterator& it) noexcept
-    {
-        // TODO:
-    }
+    end(const recursive_directory_iterator& it) noexcept;
 
     /**
      * [n4659] 30.10.11, file status:
