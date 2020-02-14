@@ -432,7 +432,7 @@ namespace std::test
 
         idx = str1.rfind('B', 2);
         test_eq(
-            "rfind char from middle (success)",
+            "rfind char from end (success)",
             idx, 3ul
         );
 
