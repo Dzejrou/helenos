@@ -1275,6 +1275,8 @@ namespace std
                 if (empty())
                     return npos;
 
+                if (pos == npos)
+                    --pos; // To avoid overflow on the line below.
                 for (size_type i = min(pos + 1, size_ - 1) + 1; i > 0; --i)
                 {
                     if (traits_type::eq(c, data_[i - 1]))
