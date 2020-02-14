@@ -35,10 +35,22 @@
 #include <locale>
 #include <string>
 
-// TODO: explain these
+// TODO: explain these, path conversion might not be needed
+//       as for us native == generic (POSIX paths)
+//       also: remove any use of native <-> generic conversions
+//       as helenos does need it
 #define LIBCPP_CONVERT_PATH(fmt) /* Ignored. */
 #define LIBCPP_CONVERT_ENC(str, loc) str
 #define LIBCPP_CONVERT_ENC_RANGE(first, last, loc) string_type{first, last}
+
+/**
+ * TODO: Functions taking template parameters named Source
+ *       shall not participate in overload resolution unless
+ *       either:
+ *       1) Source is a specialization of basic_string or basic_string_view, or
+ *       2) the qualified-id iterator_traits<decay_t<Source>>::value_type is
+ *          valid and denotes a possibly const encoded character type.
+ */
 
 // TODO: add default function arguments
 namespace std::filesystem
@@ -59,6 +71,7 @@ namespace std::filesystem
              * [n4659] 30.10.10.1, enumeration format:
              */
 
+            // TODO: add a note about formats and what they mean for us
             enum format
             {
                 native_format,
@@ -121,19 +134,21 @@ namespace std::filesystem
             template<class Source>
             path& operator=(const Source& src)
             {
-                // TODO:
+                path_ = LIBCPP_CONVERT_ENC(src, locale{});
+
+                return *this;
             }
 
             template<class Source>
             path& assign(const Source& src)
             {
-                // TODO:
+                return (*this = src);
             }
 
             template<class InputIterator>
             path& assign(InputIterator first, InputIterator last)
             {
-                // TODO:
+                path_ = LIBCPP_CONVERT_ENC_RANGE(first, last, locale{});
             }
 
             /**
@@ -145,19 +160,19 @@ namespace std::filesystem
             template<class Source>
             path& operator/=(const Source& src)
             {
-                // TODO:
+                return operator/=(path{src});
             }
 
             template<class Source>
             path& append(const Source& src)
             {
-                // TODO:
+                return operator/=(path{src});
             }
 
             template<class InputIterator>
             path& append(InputIterator first, InputIterator last)
             {
-                // TODO:
+                return operator/=(path{first, last});
             }
 
             /**
@@ -173,46 +188,70 @@ namespace std::filesystem
             template<class Source>
             path& operator+=(const Source& src)
             {
-                // TODO:
+                path_.append(path{src}.native());
+
+                return *this;
             }
 
             template<class Char>
             path& operator+=(Char c)
             {
-                // TODO:
+                path_.append(path{c}.native());
+
+                return *this;
             }
 
             template<class Source>
             path& concat(const Source& src)
             {
-                // TODO:
+                path_.append(path{src}.native());
             }
 
             template<class InputIterator>
             path& concat(InputIterator first, InputIterator last)
             {
-                // TODO:
+                return *this += path{first, last};
             }
 
             /**
              * [n4659] 30.10.8.4.5, modifiers:
              */
 
-            void clear() noexcept;
+            void clear() noexcept
+            {
+                path_.clear();
+            }
+
             path& make_preferred();
             path& remove_filename();
             path& replace_filename(const path& replacement);
             path& replace_extension(const path& replacement = path{});
-            void swap(path& p) noexcept;
+
+            void swap(path& p) noexcept
+            {
+                path_.swap(p.path_);
+            }
 
             /**
              * [n4659] 30.10.8.4.6, native format observers:
              */
 
-            const string_type& native() const noexcept;
-            const value_type* c_str() const noexcept;
-            operator string_type() const;
+            const string_type& native() const noexcept
+            {
+                return path_;
+            }
 
+            const value_type* c_str() const noexcept
+            {
+                return path_.c_str();
+            }
+
+            operator string_type() const
+            {
+                return path_;
+            }
+
+            // TODO: shall not participate unless Char encoded
             template<
                 class Char, class Traits = char_traits<Char>,
                 class Alloc = allocator<Char>
@@ -220,7 +259,9 @@ namespace std::filesystem
             basic_string<Char, Traits, Alloc>
             string(const Alloc& alloc = Alloc{}) const
             {
-                // TODO:
+                return basic_string<
+                    Char, Traits, Alloc
+                >{native(), alloc};
             }
 
             std::string string() const;
@@ -233,6 +274,7 @@ namespace std::filesystem
              * [n4659] 30.10.8.4.7, generic format observers:
              */
 
+            // TODO: shall not participate unless Char encoded
             template<
                 class Char, class Traits = char_traits<Char>,
                 class Alloc = allocator<Char>
@@ -240,7 +282,7 @@ namespace std::filesystem
             basic_string<Char, Traits, Alloc>
             generic_string(const Alloc& alloc = Alloc{}) const
             {
-                // TODO:
+                return path::string(alloc);
             }
 
             std::string generic_string() const;

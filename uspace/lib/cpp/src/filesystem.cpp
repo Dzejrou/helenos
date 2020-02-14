@@ -48,4 +48,312 @@ namespace std::filesystem
     {
         LIBCPP_CONVERT_PATH(fmt);
     }
+
+    path& path::operator=(const path& p)
+    {
+        if (this != &p)
+            path_ = p.path_;
+
+        return *this;
+    }
+
+    path& path::operator=(path&& p)
+    {
+        if (this != &p)
+            swap(p);
+
+        return *this;
+    }
+
+    path& path::operator=(string_type&& src)
+    {
+        path_ = move(src);
+
+        return *this;
+    }
+
+    path& path::assign(string_type&& src)
+    {
+        return (*this = move(src));
+    }
+
+    path& path::operator/=(const path& p)
+    {
+        /* if (p.is_absolute() || */
+        /*     (p.has_root_name() && p.root_name() != root_name())) */
+        /*     return (*this = p); */
+
+        // TODO:
+        return *this;
+    }
+
+    path& path::operator+=(const path& p)
+    {
+        path_.append(p.native());
+
+        return *this;
+    }
+
+    path& path::operator+=(const string_type& src)
+    {
+        path_.append(src);
+
+        return *this;
+    }
+
+    path& path::operator+=(const value_type* src)
+    {
+        path_.append(src);
+
+        return *this;
+    }
+
+    path& path::operator+=(value_type c)
+    {
+        path_.append(1U, c);
+
+        return *this;
+    }
+
+    path& path::make_preferred()
+    {
+        // TODO:
+        __unimplemented();
+
+        return *this;
+    }
+
+    path& path::remove_filename()
+    {
+        // TODO:
+        __unimplemented();
+
+        return *this;
+    }
+
+    path& path::replace_filename(const path& replacement)
+    {
+        // TODO:
+        __unimplemented();
+
+        return *this;
+    }
+
+    path& path::replace_extension(const path& replacement)
+    {
+        // TODO:
+        __unimplemented();
+
+        return *this;
+    }
+
+    std::string path::string() const
+    {
+        return path_;
+    }
+
+    std::wstring path::wstring() const
+    {
+        __unimplemented();
+
+        return {};
+    }
+
+    std::string path::generic_string() const
+    {
+        return path_;
+    }
+
+    std::wstring path::generic_wstring() const
+    {
+        __unimplemented();
+
+        return {};
+    }
+
+    int path::compare(const path& p) const
+    {
+        return path_.compare(p.path_);
+    }
+
+    int path::compare(const string_type& str) const
+    {
+        return compare(path{str});
+    }
+
+    int path::compare(const value_type* str) const
+    {
+        return compare(path{str});
+    }
+
+    path path::root_name() const
+    {
+        /**
+         * Note: HelenOS has empty root name, so we will
+         *       return an empty path.
+         */
+        return path{};
+    }
+
+    path path::root_directory() const
+    {
+        /**
+         * Note: HelenOS only has one root, so we only
+         *       need to check it is included in the path
+         *       and then return a new path with just it.
+         */
+        if (path_.size() > 1U && path_[0] == '/')
+            return path{"/"};
+        else
+            return path{};
+    }
+
+    path path::root_path() const
+    {
+        /**
+         * Note: HelenOS has no root name, otherwise
+         *       this would be root_name() / root_directory().
+         */
+        return root_directory();
+    }
+
+    path path::relative_path() const
+    {
+        if (empty())
+            return path{};
+
+        if (path_[0] == '/')
+            return path_.substr(1U);
+        else
+            return path_;
+    }
+
+    path path::parent_path() const
+    {
+        if (!has_relative_path())
+            return *this;
+
+        auto last_sep = path_.rfind(preferred_separator);
+        if (last_sep == string_type::npos)
+            return path{};
+        else
+            return path{path_.substr(0U, last_sep)};
+    }
+
+    path path::filename() const
+    {
+        /* return relative_path().empty() ? path{} : *--end(); */
+        // TODO: need operator-- on path::iterator
+        __unimplemented();
+
+        return {};
+    }
+
+    path path::stem() const
+    {
+        // TODO:
+        __unimplemented();
+
+        return {};
+    }
+
+    path path::extension() const
+    {
+        // TODO:
+        __unimplemented();
+
+        return {};
+    }
+
+    bool path::has_root_name() const
+    {
+        return !root_name().empty();
+    }
+
+    bool path::has_root_directory() const
+    {
+        return !root_name().empty();
+    }
+
+    bool path::has_root_path() const
+    {
+        return !root_path().empty();
+    }
+
+    bool path::has_relative_path() const
+    {
+        return !relative_path().empty();
+    }
+
+    bool path::has_parent_path() const
+    {
+        return !parent_path().empty();
+    }
+
+    bool path::has_filename() const
+    {
+        return !filename().empty();
+    }
+
+    bool path::has_stem() const
+    {
+        return !stem().empty();
+    }
+
+    bool path::has_extension() const
+    {
+        return !extension().empty();
+    }
+
+    bool path::is_absolute() const
+    {
+        return path_.size() > 1U && path_[0] == '/';
+    }
+
+    bool path::is_relative() const
+    {
+        return !is_absolute();
+    }
+
+    path path::lexically_normal() const
+    {
+        // TODO:
+        __unimplemented();
+
+        return {};
+    }
+
+    path path::lexically_relative(const path& base) const
+    {
+        // TODO:
+        __unimplemented();
+
+        return {};
+    }
+
+    path path::lexically_proximate(const path& base) const
+    {
+        // TODO:
+        __unimplemented();
+
+        return {};
+    }
+
+    // TODO: iterator
+
+    auto path::begin() const -> iterator
+    {
+        // TODO:
+        __unimplemented();
+
+        return {};
+    }
+
+    auto path::end() const -> iterator
+    {
+        // TODO:
+        __unimplemented();
+
+        return {};
+    }
 }
