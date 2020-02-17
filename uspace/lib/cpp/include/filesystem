@@ -27,3 +27,4 @@
  */
 
 #include <__bits/io/fs/filesystem.hpp>
+#include <__bits/io/fs/path.hpp>
