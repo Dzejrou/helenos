@@ -250,10 +250,21 @@ namespace std::filesystem
 
     path path::stem() const
     {
-        // TODO:
-        __unimplemented();
+        auto res = filename();
+        if (res.empty())
+            return res;
 
-        return {};
+        auto last_dot = res.path_.rfind('.');
+        if (last_dot == string_type::npos)
+            return res; // No dot in the path.
+
+        if (last_dot == 0U || res.path_[last_dot - 1] == preferred_separator)
+            return res; // Last dot is the start of a filename.
+        if (res.path_[last_dot - 1] == '.')
+            return res; // Double dot filename.
+        res.path_.resize(last_dot);
+
+        return res;
     }
 
     path path::extension() const
