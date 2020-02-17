@@ -84,7 +84,8 @@ namespace std::filesystem
             (p.has_root_name() && p.root_name() != root_name()))
             return (*this = p);
 
-        path_.append("/");
+        if (!path_.empty() && path_[path_.size() - 1] != preferred_separator)
+            path_.push_back(preferred_separator);
         path_.append(p.path_);
 
         return *this;
@@ -120,32 +121,45 @@ namespace std::filesystem
 
     path& path::make_preferred()
     {
-        // TODO:
-        __unimplemented();
-
-        return *this;
+        return *this; // On HelenOS native == preferred.
     }
 
     path& path::remove_filename()
     {
-        // TODO:
-        __unimplemented();
+        auto last_sep = path_.rfind(preferred_separator);
+        if (last_sep == string_type::npos || last_sep == path_.size() - 1)
+            return *this; // No filename.
+
+        path_.resize(last_sep + 1);
 
         return *this;
     }
 
     path& path::replace_filename(const path& replacement)
     {
-        // TODO:
-        __unimplemented();
+        remove_filename();
+        *this /= replacement;
 
         return *this;
     }
 
     path& path::replace_extension(const path& replacement)
     {
-        // TODO:
-        __unimplemented();
+        auto last_dot = path_.rfind('.');
+        if (last_dot == string_type::npos)
+            return *this;
+
+        auto last_sep = path_.rfind(preferred_separator);
+        if (last_dot < last_sep)
+            return *this; // No extension.
+
+        if (last_dot == 0U || path_[last_dot - 1] == preferred_separator)
+            return *this; // Filename start.
+
+        path_.resize(last_dot);
+        if (!replacement.empty() && replacement.path_[0] != '.')
+            path_.push_back('.');
+        *this += replacement;
 
         return *this;
     }
