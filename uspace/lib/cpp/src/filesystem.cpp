@@ -80,11 +80,13 @@ namespace std::filesystem
 
     path& path::operator/=(const path& p)
     {
-        /* if (p.is_absolute() || */
-        /*     (p.has_root_name() && p.root_name() != root_name())) */
-        /*     return (*this = p); */
+        if (p.is_absolute() ||
+            (p.has_root_name() && p.root_name() != root_name()))
+            return (*this = p);
 
-        // TODO:
+        path_.append("/");
+        path_.append(p.path_);
+
         return *this;
     }
 
