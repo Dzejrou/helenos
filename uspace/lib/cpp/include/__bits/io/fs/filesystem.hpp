@@ -32,6 +32,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <iosfwd>
+#include <iterator>
 #include <locale>
 #include <string>
 
@@ -348,10 +349,11 @@ namespace std::filesystem
             class iterator
             {
                 public:
+                    using iterator_category = bidirectional_iterator_tag;
                     using value_type = path;
-                    using reference = const path&;
                     using difference_type = size_t;
                     using pointer = path* const;
+                    using reference = const path&;
 
                     iterator()
                         : idx_{}, size_{}, elements_{}
