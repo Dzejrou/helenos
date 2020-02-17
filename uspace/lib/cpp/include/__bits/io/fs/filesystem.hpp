@@ -107,22 +107,6 @@ namespace std::filesystem
     end(const recursive_directory_iterator& it) noexcept;
 
     /**
-     * [n4659] 30.10.11, file status:
-     */
-
-    class file_status
-    {
-        // TODO:
-    };
-
-    struct space_info
-    {
-        uintmax_t capacity;
-        uintmax_t free;
-        uintmax_t available;
-    };
-
-    /**
      * [n4659] 30.10.10 enumerations:
      */
 
@@ -288,6 +272,64 @@ namespace std::filesystem
     };
 
     using file_time_type = chrono::time_point<void, void /* TODO: trivial clock */>;
+
+    /**
+     * [n4659] 30.10.11, file status:
+     */
+
+    class file_status
+    {
+        public:
+            file_status() noexcept
+                : file_status(file_type::none)
+            { /* DUMMY BODY */ }
+
+            explicit file_status(file_type ft, perms prms = perms::unknown)
+                noexcept
+                : type_{ft}, perms_{prms}
+            { /* DUMMY BODY */ }
+
+            file_status(const file_status&) noexcept = default;
+            file_status(file_status&&) noexcept = default;
+            ~file_status() = default;
+
+            file_status&
+            operator=(const file_status&) noexcept = default;
+
+            file_status&
+            operator=(file_status&&) noexcept = default;
+
+            void type(file_type ft) noexcept
+            {
+                type_ = ft;
+            }
+
+            void permissions(perms prms) noexcept
+            {
+                perms_ = prms;
+            }
+
+            file_type type() const noexcept
+            {
+                return type_;
+            }
+
+            perms permissions() const noexcept
+            {
+                return perms_;
+            }
+
+        private:
+            file_type type_;
+            perms perms_;
+    };
+
+    struct space_info
+    {
+        uintmax_t capacity;
+        uintmax_t free;
+        uintmax_t available;
+    };
 
     /**
      * [n4659] 30.10.15, filesystem operations:
