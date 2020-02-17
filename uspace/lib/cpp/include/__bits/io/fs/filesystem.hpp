@@ -424,6 +424,8 @@ namespace std::filesystem
                     path* elements_;
 
                     bool has_trailing_element_(const string_type&);
+                    size_t get_element_count_(const string_type&);
+                    path* split_path_to_elements_(const string_type&, size_t);
             };
 
             using const_iterator = iterator;

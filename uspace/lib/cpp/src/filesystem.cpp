@@ -353,90 +353,15 @@ namespace std::filesystem
     path::iterator::iterator(const path& p, bool end)
         : idx_{}, size_{}, elements_{}
     {
-        /**
-         * TODO: Split this constructor into two parts:
-         *       1) Finding the length of the element array.
-         *       2) Creation of the element array.
-         */
-        const auto& str = p.path_;
-        if (str.empty())
-            return;
-
-        if (str[0] == '/')
-            ++size_;
-
-        size_t last_sep{};
-        for (size_t i = 1U; i < str.size(); ++i)
-        {
-            if (str[i] == preferred_separator)
-            {
-                if (i != last_sep + 1)
-                    ++size_;
-                last_sep = i; // Avoid duplicate separators.
-            }
-        }
-
-        /**
-         * This is for trailing filenames, i.e. those that
-         * are not followed by a separator. It also covers
-         * a trailing separator which the standard requires
-         * to be added as an element.
-         * The requirement for inequality with 1U is for
-         * the case of path{'/'} as that is the only case
-         * when there is no trailing part.
-         */
-        if (has_trailing_element_(str))
-            ++size_;
-        auto last = str[str.size() - 1];
-
-        elements_ = new path[size_];
-        idx_ = size_t{};
-        if (str[0] == '/')
-            elements_[idx_++] = path{"/"};
-
-        for (size_t i = 1U, last_sep = 0U; i < str.size(); ++i)
-        {
-            if (str[i] == preferred_separator)
-            {
-                if (i != last_sep + 1)
-                {
-                    auto count = i - last_sep - 1;
-                    elements_[idx_++] = path{
-                        str.substr(last_sep + 1, count)
-                    };
-                }
-                last_sep = i;
-            }
-        }
-
-        /**
-         * The last separator as its own element
-         * is required by the standard.
-         */
-        if (has_trailing_element_(str))
-        {
-            if (last == preferred_separator)
-                elements_[idx_] = path{"/"};
-            else
-            { // Last element of a path that does not end with separator.
-                if (str[last_sep] == '/')
-                    ++last_sep; // Needed if path is just a filename.
-
-                auto count = str.size() - last_sep;
-                elements_[idx_] = path{
-                    str.substr(last_sep, count)
-                };
-            }
-        }
+        size_ = get_element_count_(p.path_);
+        elements_ = split_path_to_elements_(p.path_, size_);
 
         /**
          * The iterator is bidirectional, so we need to
          * have the end() iterator to still be valid once
          * decremented.
          */
-        if (!end)
-            idx_ = size_t{};
-        else
+        if (end)
             idx_ = size_;
     }
 
@@ -521,9 +446,98 @@ namespace std::filesystem
             return false;
         if (str[0] != '/')
             return true;
-        if (str.size() > 1 && str[1] != '/' && str[str.size() - 1] != '/')
+        if (str[1] != '/' && str[str.size() - 1] != '/')
             return true;
         return false;
+    }
+
+    size_t path::iterator::get_element_count_(const string_type& str)
+    {
+        size_t size{};
+        if (str.empty())
+            return size;
+
+        size_t element_start{};
+        if (str[0] == '/')
+        {
+            ++element_start;
+            ++size;
+        }
+
+        for (size_t i = element_start; i < str.size(); ++i)
+        {
+            if (str[i] == preferred_separator)
+            {
+                if (i != element_start)
+                    ++size;
+                element_start = i + 1; // Avoid duplicate separators.
+            }
+        }
+
+        /**
+         * This is for trailing filenames, i.e. those that
+         * are not followed by a separator. It also covers
+         * a trailing separator which the standard requires
+         * to be added as an element.
+         * The requirement for inequality with 1U is for
+         * the case of path{'/'} as that is the only case
+         * when there is no trailing part.
+         */
+        if (has_trailing_element_(str))
+            ++size;
+
+        return size;
+    }
+
+    path*
+    path::iterator::split_path_to_elements_(const string_type& str, size_t size)
+    {
+        if (str.empty() || size == 0U)
+            return nullptr;
+
+        path* elements = new path[size];
+        size_t idx{};
+
+        size_t element_start{};
+        if (str[0] == '/')
+        {
+            ++element_start;
+            elements[idx++] = path{"/"};
+        }
+
+        for (size_t i = element_start; i < str.size(); ++i)
+        {
+            if (str[i] == preferred_separator)
+            {
+                if (i != element_start)
+                {
+                    auto count = i - element_start;
+                    elements[idx++] = path{
+                        str.substr(element_start, count)
+                    };
+                }
+                element_start = i + 1;
+            }
+        }
+
+        if (has_trailing_element_(str))
+        {
+            /**
+             * The last separator as its own element
+             * is required by the standard.
+             */
+            if (str[str.size() - 1] == preferred_separator)
+                elements[idx] = path{"/"};
+            else
+            { // Last element of a path that does not end with separator.
+                auto count = str.size() - element_start;
+                elements[idx] = path{
+                    str.substr(element_start, count)
+                };
+            }
+        }
+
+        return elements;
     }
 
     auto path::begin() const -> iterator
