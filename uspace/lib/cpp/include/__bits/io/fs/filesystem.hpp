@@ -128,27 +128,163 @@ namespace std::filesystem
 
     enum class file_type
     {
-        // TODO:
+        none,
+        not_found,
+        regular,
+        directory,
+        symlink,
+        block,
+        character,
+        fifo,
+        socket,
+        unknown
     };
 
     enum class perms
     {
-        // TODO:
+        none = 0,
+        owner_read   = 0400,
+        owner_write  = 0200,
+        owner_exec   = 0100,
+        owner_all    = 0700,
+        group_read   = 040,
+        group_write  = 020,
+        group_exec   = 010,
+        group_all    = 070,
+        others_read  = 04,
+        others_write = 02,
+        others_exec  = 01,
+        others_all   = 07,
+        all          = 0777,
+        set_uid      = 04000,
+        set_gid      = 02000,
+        sticky_bit   = 01000,
+        mask         = 07777,
+        unknown      = 0xFFFF
     };
+
+    inline perms operator&(perms lhs, perms rhs)
+    {
+        return static_cast<perms>(
+            static_cast<int>(lhs) &
+            static_cast<int>(rhs)
+        );
+    }
+
+    inline perms operator|(perms lhs, perms rhs)
+    {
+        return static_cast<perms>(
+            static_cast<int>(lhs) |
+            static_cast<int>(rhs)
+        );
+    }
+
+    inline perms operator^(perms lhs, perms rhs)
+    {
+        return static_cast<perms>(
+            static_cast<int>(lhs) ^
+            static_cast<int>(rhs)
+        );
+    }
+
+    inline perms operator!(perms p)
+    {
+        return static_cast<perms>(!static_cast<int>(p));
+    }
 
     enum class perm_options
     {
-        // TODO:
+        replace,
+        add,
+        remove,
+        nofollow
     };
+
+    inline perm_options operator&(perm_options lhs, perm_options rhs)
+    {
+        return static_cast<perm_options>(
+            static_cast<int>(lhs) &
+            static_cast<int>(rhs)
+        );
+    }
+
+    inline perm_options operator|(perm_options lhs, perm_options rhs)
+    {
+        return static_cast<perm_options>(
+            static_cast<int>(lhs) |
+            static_cast<int>(rhs)
+        );
+    }
+
+    inline perm_options operator^(perm_options lhs, perm_options rhs)
+    {
+        return static_cast<perm_options>(
+            static_cast<int>(lhs) ^
+            static_cast<int>(rhs)
+        );
+    }
+
+    inline perm_options operator!(perm_options p)
+    {
+        return static_cast<perm_options>(!static_cast<int>(p));
+    }
 
     enum class copy_options
     {
-        // TODO:
+        none,
+
+        // Files
+        skip_existing,
+        overwrite_existing,
+        update_existing,
+
+        // Sub-directories
+        recursive,
+
+        // Symbolic links
+        copy_symlinks,
+        skip_symlinks,
+
+        // Form of copying
+        directories_only,
+        create_symlinks,
+        create_hard_links
     };
+
+    inline copy_options operator&(copy_options lhs, copy_options rhs)
+    {
+        return static_cast<copy_options>(
+            static_cast<int>(lhs) &
+            static_cast<int>(rhs)
+        );
+    }
+
+    inline copy_options operator|(copy_options lhs, copy_options rhs)
+    {
+        return static_cast<copy_options>(
+            static_cast<int>(lhs) |
+            static_cast<int>(rhs)
+        );
+    }
+
+    inline copy_options operator^(copy_options lhs, copy_options rhs)
+    {
+        return static_cast<copy_options>(
+            static_cast<int>(lhs) ^
+            static_cast<int>(rhs)
+        );
+    }
+
+    inline copy_options operator!(copy_options c)
+    {
+        return static_cast<copy_options>(!static_cast<int>(c));
+    }
 
     enum class directory_options
     {
-        // TODO:
+        none,
+        follow_directory_symlink,
+        skip_permission_denied
     };
 
     using file_time_type = chrono::time_point<void, void /* TODO: trivial clock */>;
