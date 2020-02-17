@@ -28,6 +28,7 @@
 
 #include <__bits/io/fs/filesystem.hpp>
 #include <__bits/utility/forward_move.hpp>
+#include <__bits/functional/hash.hpp>
 
 namespace std::filesystem
 {
@@ -259,10 +260,22 @@ namespace std::filesystem
 
     path path::extension() const
     {
-        // TODO:
-        __unimplemented();
+        // TODO: make generic way to get dot and slash (for root, not sep)
+        auto fname = filename();
+        if (fname.empty())
+            return path{};
 
-        return {};
+        auto last_dot = fname.path_.rfind('.');
+        auto npos = string_type::npos;
+
+        if (last_dot == npos)
+            return path{};
+        if (last_dot == string_type::size_type{})
+            return path{}; // Fname is current dir.
+        if (last_dot == 1U && fname.path_[0] == '.')
+            return path{}; // Fname is parent dir.
+        return fname.path_.substr(last_dot, npos);
+        // TODO: ^ totally theoretical and untested
     }
 
     bool path::has_root_name() const
@@ -333,27 +346,226 @@ namespace std::filesystem
 
     path path::lexically_proximate(const path& base) const
     {
-        // TODO:
-        __unimplemented();
+        auto relative = lexically_normal()
+            .lexically_relative(base.lexically_normal());
 
-        return {};
+        if (!relative.empty())
+            return relative;
+        else
+            return *this;
     }
 
-    // TODO: iterator
+    path::iterator::iterator(const path& p, bool end)
+        : idx_{}, size_{}, elements_{}
+    {
+        const auto& str = p.path_;
+        if (str.empty())
+            return;
+
+        if (str[0] == '/')
+            ++size_;
+
+        size_t last_sep{};
+        for (size_t i = 1U; i < str.size(); ++i)
+        {
+            if (str[i] == preferred_separator)
+            {
+                if (i != last_sep + 1)
+                    ++size_;
+                last_sep = i; // Avoid duplicate separators.
+            }
+        }
+
+        /**
+         * This is for trailing filenames, i.e. those that
+         * are not followed by a separator. It also covers
+         * a trailing separator which the standard requires
+         * to be added as an element.
+         * The requirement for inequality with 1U is for
+         * the case of path{'/'} as that is the only case
+         * when there is no trailing part.
+         */
+        if (size_ != 1U)
+            ++size_;
+        auto last = str[str.size() - 1];
+
+        elements_ = new path[size_];
+        idx_ = size_t{};
+        if (str[0] == '/')
+            elements_[idx_++] = path{"/"};
+
+        for (size_t i = 1U, last_sep = 0U; i < str.size(); ++i)
+        {
+            if (str[i] == preferred_separator)
+            {
+                if (i != last_sep + 1)
+                {
+                    auto count = i - last_sep - 1;
+                    elements_[idx_++] = path{
+                        str.substr(last_sep + 1, count)
+                    };
+                }
+                last_sep = i;
+            }
+        }
+
+        /**
+         * The last separator as its own element
+         * is required by the standard.
+         */
+        if (size_ != 1U || str[0] != '/')
+        {
+            if (last == preferred_separator)
+                elements_[idx_] = path{"/"};
+            else
+            { // Last element of a path that does not end if separator.
+                if (str[last_sep] == '/')
+                    ++last_sep; // Needed if path is just a filename.
+
+                auto count = str.size() - last_sep;
+                elements_[idx_] = path{
+                    str.substr(last_sep, count)
+                };
+            }
+        }
+
+        /**
+         * The iterator is bidirectional, so we need to
+         * have the end() iterator to still be valid once
+         * decremented.
+         */
+        if (!end)
+            idx_ = size_t{};
+        else
+            idx_ = size_;
+    }
+
+    path::iterator::iterator(const path::iterator& it)
+        : idx_{it.idx_}, size_{it.size_}, elements_{}
+    {
+        if (size_ > 0U)
+        {
+            elements_ = new path[size_];
+            for (size_t i = 0U; i < size_; ++i)
+                elements_[i] = it.elements_[i];
+        }
+    }
+
+    path::iterator& path::iterator::operator=(const path::iterator& it)
+    {
+        if (elements_)
+            delete[] elements_;
+
+        idx_ = it.idx_;
+        size_ = it.size_;
+        if (size_ > 0U)
+        {
+            elements_ = new path[size_];
+            for (size_t i = 0U; i < size_; ++i)
+                elements_[i] = it.elements_[i];
+        }
+
+        return *this;
+    }
+
+    path::iterator::iterator(path::iterator&& it)
+        : idx_{it.idx_}, size_{it.size_}, elements_{it.elements_}
+    {
+        it.idx_ = 0U;
+        it.size_ = 0U;
+        it.elements_ = nullptr;
+    }
+
+    path::iterator& path::iterator::operator=(path::iterator&& it)
+    {
+        if (elements_)
+            delete[] elements_;
+        idx_ = it.idx_;
+        size_ = it.size_;
+        elements_ = it.elements_;
+
+        it.idx_ = 0U;
+        it.size_ = 0U;
+        it.elements_ = nullptr;
+
+        return *this;
+    }
+
+    bool path::iterator::operator==(const path::iterator& it)
+    {
+        // 1) Default initialized iterators are equal.
+        if (!elements_ && !it.elements_)
+            return true;
+        else if (!elements_ || !it.elements_)
+            return false;
+
+        // 2) Check the actual path.
+        if (size_ == it.size_)
+        {
+            for (size_t i = 0U; i < size_; ++i)
+            {
+                if (elements_[i] != it.elements_[i])
+                    return false;
+            }
+        }
+        else
+            return false;
+
+        // 3) Check indices.
+        return idx_ == it.idx_;
+    }
 
     auto path::begin() const -> iterator
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return iterator{*this, false};
     }
 
     auto path::end() const -> iterator
     {
-        // TODO:
-        __unimplemented();
+        return iterator{*this, true};
+    }
 
-        return {};
+    void swap(path& lhs, path& rhs) noexcept
+    {
+        lhs.swap(rhs);
+    }
+
+    size_t hash_value(const path& p) noexcept
+    {
+        return hash<path::string_type>{}(p.path_);
+    }
+
+    bool operator==(const path& lhs, const path& rhs) noexcept
+    {
+        return !(lhs < rhs) && !(rhs < lhs);
+    }
+    bool operator!=(const path& lhs, const path& rhs) noexcept
+    {
+        return !(lhs == rhs);
+    }
+
+    bool operator<(const path& lhs, const path& rhs) noexcept
+    {
+        return lhs.compare(rhs) < 0;
+    }
+
+    bool operator<=(const path& lhs, const path& rhs) noexcept
+    {
+        return !(rhs < lhs);
+    }
+
+    bool operator>(const path& lhs, const path& rhs) noexcept
+    {
+        return rhs < lhs;
+    }
+
+    bool operator>=(const path& lhs, const path& rhs) noexcept
+    {
+        return !(lhs < rhs);
+    }
+
+    path operator/(const path& lhs, const path& rhs)
+    {
+        return path{lhs} /= rhs;
     }
 }

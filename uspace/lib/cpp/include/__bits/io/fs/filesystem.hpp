@@ -347,7 +347,81 @@ namespace std::filesystem
 
             class iterator
             {
-                // TODO:
+                public:
+                    using value_type = path;
+                    using reference = const path&;
+                    using difference_type = size_t;
+                    using pointer = path* const;
+
+                    iterator()
+                        : idx_{}, size_{}, elements_{}
+                    { /* DUMMY BODY */ }
+
+                    iterator(const path& p, bool end = false);
+                    iterator(const iterator& it);
+                    iterator& operator=(const iterator& it);
+                    iterator(iterator&&);
+                    iterator& operator=(iterator&&);
+
+                    ~iterator()
+                    {
+                        if (elements_)
+                            delete[] elements_;
+                    }
+
+                    iterator operator++(int)
+                    {
+                        auto tmp = *this;
+                        ++(*this);
+
+                        return tmp;
+                    }
+
+                    iterator& operator++()
+                    {
+                        if (idx_ < size_)
+                            ++idx_;
+
+                        return *this;
+                    }
+
+                    iterator operator--(int)
+                    {
+                        auto tmp = *this;
+                        --(*this);
+
+                        return tmp;
+                    }
+
+                    iterator& operator--()
+                    {
+                        if (0U < idx_)
+                            --idx_;
+
+                        return *this;
+                    }
+
+                    reference operator*()
+                    {
+                        return elements_[idx_];
+                    }
+
+                    pointer operator->()
+                    {
+                        return &elements_[idx_];
+                    }
+
+                    bool operator==(const iterator& it);
+
+                    bool operator!=(const iterator& it)
+                    {
+                        return !(*this == it);
+                    }
+
+                /* private: */
+                    size_t idx_;
+                    size_t size_;
+                    path* elements_;
             };
 
             using const_iterator = iterator;
@@ -357,6 +431,9 @@ namespace std::filesystem
 
         private:
             string_type path_;
+
+            friend bool operator==(const path&, const path&);
+            friend size_t hash_value(const path&);
     };
 
     /**
@@ -383,14 +460,21 @@ namespace std::filesystem
     basic_ostream<Char, Traits>&
     operator<<(basic_ostream<Char, Traits>& os, const path& p)
     {
-        // TODO:
+        os << p.native();
+
+        return os;
     }
 
     template<class Char, class Traits>
     basic_istream<Char, Traits>&
     operator>>(basic_istream<Char, Traits>& is, path& p)
     {
-        // TODO:
+        basic_string<Char, Traits> str{};
+        is >> str;
+
+        p = path{str};
+
+        return is;
     }
 
     /**
