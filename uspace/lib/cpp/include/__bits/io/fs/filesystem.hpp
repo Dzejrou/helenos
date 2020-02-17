@@ -418,10 +418,12 @@ namespace std::filesystem
                         return !(*this == it);
                     }
 
-                /* private: */
+                private:
                     size_t idx_;
                     size_t size_;
                     path* elements_;
+
+                    bool has_trailing_element_(const string_type&);
             };
 
             using const_iterator = iterator;
@@ -460,7 +462,8 @@ namespace std::filesystem
     basic_ostream<Char, Traits>&
     operator<<(basic_ostream<Char, Traits>& os, const path& p)
     {
-        os << p.native();
+        // Note: Should be using quoted(), which is not implemented.
+        os << p.string<Char, Traits>();
 
         return os;
     }
@@ -469,6 +472,7 @@ namespace std::filesystem
     basic_istream<Char, Traits>&
     operator>>(basic_istream<Char, Traits>& is, path& p)
     {
+        // Note: Should be using quoted(), which is not implemented.
         basic_string<Char, Traits> str{};
         is >> str;
 

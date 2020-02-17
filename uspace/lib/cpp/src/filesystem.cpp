@@ -243,11 +243,7 @@ namespace std::filesystem
 
     path path::filename() const
     {
-        /* return relative_path().empty() ? path{} : *--end(); */
-        // TODO: need operator-- on path::iterator
-        __unimplemented();
-
-        return {};
+        return relative_path().empty() ? path{} : *--end();
     }
 
     path path::stem() const
@@ -275,7 +271,6 @@ namespace std::filesystem
         if (last_dot == 1U && fname.path_[0] == '.')
             return path{}; // Fname is parent dir.
         return fname.path_.substr(last_dot, npos);
-        // TODO: ^ totally theoretical and untested
     }
 
     bool path::has_root_name() const
@@ -358,6 +353,11 @@ namespace std::filesystem
     path::iterator::iterator(const path& p, bool end)
         : idx_{}, size_{}, elements_{}
     {
+        /**
+         * TODO: Split this constructor into two parts:
+         *       1) Finding the length of the element array.
+         *       2) Creation of the element array.
+         */
         const auto& str = p.path_;
         if (str.empty())
             return;
@@ -385,7 +385,7 @@ namespace std::filesystem
          * the case of path{'/'} as that is the only case
          * when there is no trailing part.
          */
-        if (size_ != 1U)
+        if (has_trailing_element_(str))
             ++size_;
         auto last = str[str.size() - 1];
 
@@ -413,12 +413,12 @@ namespace std::filesystem
          * The last separator as its own element
          * is required by the standard.
          */
-        if (size_ != 1U || str[0] != '/')
+        if (has_trailing_element_(str))
         {
             if (last == preferred_separator)
                 elements_[idx_] = path{"/"};
             else
-            { // Last element of a path that does not end if separator.
+            { // Last element of a path that does not end with separator.
                 if (str[last_sep] == '/')
                     ++last_sep; // Needed if path is just a filename.
 
@@ -513,6 +513,17 @@ namespace std::filesystem
 
         // 3) Check indices.
         return idx_ == it.idx_;
+    }
+
+    bool path::iterator::has_trailing_element_(const string_type& str)
+    {
+        if (str.empty())
+            return false;
+        if (str[0] != '/')
+            return true;
+        if (str.size() > 1 && str[1] != '/' && str[str.size() - 1] != '/')
+            return true;
+        return false;
     }
 
     auto path::begin() const -> iterator
