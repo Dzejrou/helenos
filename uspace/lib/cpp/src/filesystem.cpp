@@ -30,4 +30,32 @@
 
 namespace std::filesystem
 {
+    filesystem_error::filesystem_error(const string& msg, error_code ec)
+        : system_error{ec}, msg_{msg}, p1_{}, p2_{}
+    { /* DUMMY BODY */ }
+
+    filesystem_error::filesystem_error(const string& msg, const path& p,
+                                       error_code ec)
+        : system_error{ec}, msg_{msg}, p1_{p}, p2_{}
+    { /* DUMMY BODY */ }
+
+    filesystem_error::filesystem_error(const string& msg, const path& p1,
+                                       const path& p2, error_code ec)
+        : system_error{ec}, msg_{msg}, p1_{p1}, p2_{p2}
+    { /* DUMMY BODY */ }
+
+    const path& filesystem_error::path1() const noexcept
+    {
+        return p1_;
+    }
+
+    const path& filesystem_error::path2() const noexcept
+    {
+        return p2_;
+    }
+
+    const char* filesystem_error::what() const noexcept
+    {
+        return msg_.c_str();
+    }
 }
