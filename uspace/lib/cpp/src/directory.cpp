@@ -27,7 +27,250 @@
  */
 
 #include <__bits/io/fs/directory.hpp>
+#include <__bits/trycatch.hpp>
 
 namespace std::filesystem
 {
+    directory_entry::directory_entry(const aux::fs::path& p)
+        : path_{p}
+    {
+        refresh();
+    }
+
+    directory_entry::directory_entry(const aux::fs::path& p, error_code& ec)
+        : path_{p}
+    {
+        refresh(ec);
+    }
+
+    void directory_entry::assign(const aux::fs::path& p)
+    {
+        path_ = p;
+        refresh();
+    }
+
+    void directory_entry::assign(const aux::fs::path& p, error_code& ec)
+    {
+        path_ = p;
+        refresh(ec);
+    }
+
+    void directory_entry::replace_filename(const aux::fs::path& p)
+    {
+        path_.replace_filename(p);
+        refresh();
+    }
+
+    void directory_entry::replace_filename(const aux::fs::path& p,
+                                           error_code& ec)
+    {
+        path_.replace_filename(p);
+        refresh(ec);
+    }
+
+    void directory_entry::refresh()
+    {
+        /**
+         * Store cached attributes here in the future,
+         * we don't cache at the moment.
+         */
+    }
+
+    void directory_entry::refresh(error_code& ec) noexcept
+    {
+        /**
+         * Store cached attributes here in the future,
+         * we don't cache at the moment.
+         */
+    }
+
+    const aux::fs::path& directory_entry::path() const noexcept
+    {
+        return path_;
+    }
+
+    directory_entry::operator const aux::fs::path&() const noexcept
+    {
+        return path_;
+    }
+
+    bool directory_entry::exists() const
+    {
+        return aux::fs::exists(this->status());
+    }
+
+    bool directory_entry::exists(error_code& ec) const noexcept\
+    {
+        return aux::fs::exists(this->status(ec));
+    }
+
+    bool directory_entry::is_block_file() const
+    {
+        return aux::fs::is_block_file(this->status());
+    }
+
+    bool directory_entry::is_block_file(error_code& ec) const noexcept\
+    {
+        return aux::fs::is_block_file(this->status(ec));
+    }
+
+    bool directory_entry::is_character_file() const
+    {
+        return aux::fs::is_character_file(this->status());
+    }
+
+    bool directory_entry::is_character_file(error_code& ec) const noexcept\
+    {
+        return aux::fs::is_character_file(this->status(ec));
+    }
+
+    bool directory_entry::is_directory() const
+    {
+        return aux::fs::is_directory(this->status());
+    }
+
+    bool directory_entry::is_directory(error_code& ec) const noexcept\
+    {
+        return aux::fs::is_directory(this->status(ec));
+    }
+
+    bool directory_entry::is_fifo() const
+    {
+        return aux::fs::is_fifo(this->status());
+    }
+
+    bool directory_entry::is_fifo(error_code& ec) const noexcept\
+    {
+        return aux::fs::is_fifo(this->status(ec));
+    }
+
+    bool directory_entry::is_other() const
+    {
+        return aux::fs::is_other(this->status());
+    }
+
+    bool directory_entry::is_other(error_code& ec) const noexcept\
+    {
+        return aux::fs::is_other(this->status(ec));
+    }
+
+    bool directory_entry::is_regular_file() const
+    {
+        return aux::fs::is_regular_file(this->status());
+    }
+
+    bool directory_entry::is_regular_file(error_code& ec) const noexcept\
+    {
+        return aux::fs::is_regular_file(this->status(ec));
+    }
+
+    bool directory_entry::is_socket() const
+    {
+        return aux::fs::is_socket(this->status());
+    }
+
+    bool directory_entry::is_socket(error_code& ec) const noexcept\
+    {
+        return aux::fs::is_socket(this->status(ec));
+    }
+
+    bool directory_entry::is_symlink() const
+    {
+        return aux::fs::is_symlink(this->status());
+    }
+
+    bool directory_entry::is_symlink(error_code& ec) const noexcept\
+    {
+        return aux::fs::is_symlink(this->status(ec));
+    }
+
+    uintmax_t directory_entry::file_size() const
+    {
+        // Return cached value when available.
+        return aux::fs::file_size(path_);
+    }
+
+    uintmax_t directory_entry::file_size(error_code& ec) const noexcept
+    {
+        // Return cached value when available.
+        return aux::fs::file_size(path_, ec);
+    }
+
+    uintmax_t directory_entry::hard_link_count() const
+    {
+        // Return cached value when available.
+        return aux::fs::hard_link_count(path_);
+    }
+
+    uintmax_t directory_entry::hard_link_count(error_code& ec) const noexcept
+    {
+        // Return cached value when available.
+        return aux::fs::hard_link_count(path_, ec);
+    }
+
+    file_time_type directory_entry::last_write_time() const
+    {
+        // Return cached value when available.
+        return aux::fs::last_write_time(path_);
+    }
+
+    file_time_type directory_entry::last_write_time(error_code& ec) const noexcept
+    {
+        // Return cached value when available.
+        return aux::fs::last_write_time(path_, ec);
+    }
+
+    file_status directory_entry::status() const
+    {
+        // Return cached value when available.
+        return aux::fs::status(path_);
+    }
+
+    file_status directory_entry::status(error_code& ec) const noexcept
+    {
+        // Return cached value when available.
+        return aux::fs::status(path_, ec);
+    }
+
+    file_status directory_entry::symlink_status() const
+    {
+        // Return cached value when available.
+        return aux::fs::symlink_status(path_);
+    }
+
+    file_status directory_entry::symlink_status(error_code& ec) const noexcept
+    {
+        // Return cached value when available.
+        return aux::fs::symlink_status(path_, ec);
+    }
+
+    bool directory_entry::operator<(const directory_entry& rhs) const noexcept
+    {
+        return path_ < rhs.path_;
+    }
+
+    bool directory_entry::operator==(const directory_entry& rhs) const noexcept
+    {
+        return path_ == rhs.path_;
+    }
+
+    bool directory_entry::operator!=(const directory_entry& rhs) const noexcept
+    {
+        return path_ != rhs.path_;
+    }
+
+    bool directory_entry::operator<=(const directory_entry& rhs) const noexcept
+    {
+        return path_ <= rhs.path_;
+    }
+
+    bool directory_entry::operator>(const directory_entry& rhs) const noexcept
+    {
+        return path_ > rhs.path_;
+    }
+
+    bool directory_entry::operator>=(const directory_entry& rhs) const noexcept
+    {
+        return path_ >= rhs.path_;
+    }
 }

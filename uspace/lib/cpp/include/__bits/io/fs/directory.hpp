@@ -29,15 +29,95 @@
 #ifndef LIBCPP_BITS_IO_FS_DIRECTORY
 #define LIBCPP_BITS_IO_FS_DIRECTORY
 
+#include <__bits/io/fs/filesystem.hpp>
+#include <__bits/io/fs/path.hpp>
+#include <cstdlib>
+
+namespace std
+{
+    class error_code;
+}
+
 namespace std::filesystem
 {
+
+    namespace aux
+    { // For brevity since we need to use it for path.
+        namespace fs = ::std::filesystem;
+    }
+
     /**
      * [n4659] 30.10.12, directory entries:
      */
 
     class directory_entry
     {
-        // TODO:
+        public:
+            directory_entry() noexcept = default;
+            directory_entry(const directory_entry&) = default;
+            directory_entry(directory_entry&&) noexcept = default;
+
+            explicit directory_entry(const aux::fs::path& p);
+            directory_entry(const aux::fs::path& p, error_code& ec);
+
+            ~directory_entry() = default;
+
+            directory_entry& operator=(const directory_entry&) = default;
+            directory_entry& operator=(directory_entry&&) noexcept = default;
+
+            void assign(const aux::fs::path& p);
+            void assign(const aux::fs::path& p, error_code& ec);
+            void replace_filename(const aux::fs::path& p);
+            void replace_filename(const aux::fs::path& p, error_code& ec);
+            void refresh();
+            void refresh(error_code& ec) noexcept;
+
+            const aux::fs::path& path() const noexcept;
+            operator const aux::fs::path&() const noexcept;
+            bool exists() const;
+            bool exists(error_code& ec) const noexcept;
+            bool is_block_file() const;
+            bool is_block_file(error_code& ec) const noexcept;
+            bool is_character_file() const;
+            bool is_character_file(error_code& ec) const noexcept;
+            bool is_directory() const;
+            bool is_directory(error_code& ec) const noexcept;
+            bool is_fifo() const;
+            bool is_fifo(error_code& ec) const noexcept;
+            bool is_other() const;
+            bool is_other(error_code& ec) const noexcept;
+            bool is_regular_file() const;
+            bool is_regular_file(error_code& ec) const noexcept;
+            bool is_socket() const;
+            bool is_socket(error_code& ec) const noexcept;
+            bool is_symlink() const;
+            bool is_symlink(error_code& ec) const noexcept;
+            uintmax_t file_size() const;
+            uintmax_t file_size(error_code& ec) const noexcept;
+            uintmax_t hard_link_count() const;
+            uintmax_t hard_link_count(error_code& ec) const noexcept;
+            file_time_type last_write_time() const;
+            file_time_type last_write_time(error_code& ec) const noexcept;
+            file_status status() const;
+            file_status status(error_code& ec) const noexcept;
+            file_status symlink_status() const;
+            file_status symlink_status(error_code& ec) const noexcept;
+
+            bool operator<(const directory_entry& rhs) const noexcept;
+            bool operator==(const directory_entry& rhs) const noexcept;
+            bool operator!=(const directory_entry& rhs) const noexcept;
+            bool operator<=(const directory_entry& rhs) const noexcept;
+            bool operator>(const directory_entry& rhs) const noexcept;
+            bool operator>=(const directory_entry& rhs) const noexcept;
+
+        private:
+            aux::fs::path path_;
+
+            /**
+             * TODO: Add attribute caching.
+             */
+
+            friend class directory_iterator;
     };
 
     /**
