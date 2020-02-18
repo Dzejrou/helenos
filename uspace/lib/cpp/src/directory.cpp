@@ -27,7 +27,9 @@
  */
 
 #include <__bits/io/fs/directory.hpp>
+#include <__bits/utility/forward_move.hpp>
 #include <__bits/trycatch.hpp>
+#include <string>
 
 namespace std::filesystem
 {
@@ -272,5 +274,231 @@ namespace std::filesystem
     bool directory_entry::operator>=(const directory_entry& rhs) const noexcept
     {
         return path_ >= rhs.path_;
+    }
+
+    directory_iterator::directory_iterator() noexcept
+        : dir_{}, curr_{}
+    { /* DUMMY BODY */ }
+
+    directory_iterator::directory_iterator(const path& p)
+        : dir_{}, curr_{}
+    {
+        dir_ = opendir(p.string().c_str());
+        if (!dir_)
+        {
+            // TODO: error handling
+        }
+
+        auto* curr_dirent = readdir(dir_);
+        if (!curr_dirent)
+        {
+            // TODO: error handling
+        }
+
+        curr_ = directory_entry{
+            path{string{&curr_dirent->d_name[0]}}
+        };
+    }
+
+    directory_iterator::directory_iterator(const path& p,
+                                           directory_options opts)
+        : directory_iterator{p}
+    {
+        /**
+         * TODO: Check if we can actually support the options.
+         * (Follow symlinks & ignore permission denied.)
+         */
+    }
+
+    directory_iterator::directory_iterator(const path& p, error_code& ec)
+        noexcept
+        : dir_{}
+    {
+        dir_ = opendir(p.string().c_str());
+        if (!dir_)
+        {
+            // TODO: error handling, this time with ec
+        }
+
+        auto* curr_dirent = readdir(dir_);
+        if (!curr_dirent)
+        {
+            // TODO: error handling, this time with ec
+        }
+
+        curr_ = directory_entry{
+            path{string{&curr_dirent->d_name[0]}}
+        };
+    }
+
+    directory_iterator::directory_iterator(const path& p,
+                                           directory_options opts,
+                                           error_code& ec) noexcept
+        : directory_iterator{p, ec}
+    {
+        /**
+         * TODO: Check if we can actually support the options.
+         * (Follow symlinks & ignore permission denied.)
+         */
+    }
+
+    directory_iterator::directory_iterator(const directory_iterator& rhs)
+        : dir_{}, curr_{rhs.curr_}
+    {
+        if (!rhs.dir_)
+            dir_ = nullptr;
+        else
+        {
+            dir_ = rhs.dir_;
+            curr_ = rhs.curr_;
+
+            rhs.dir_ = nullptr;
+        }
+    }
+
+    directory_iterator::directory_iterator(directory_iterator&& rhs) noexcept
+        : dir_{rhs.dir_}, curr_{move(rhs.curr_)}
+    {
+        rhs.dir_ = nullptr;
+        rhs.curr_ = directory_entry{};
+    }
+
+    directory_iterator::~directory_iterator()
+    {
+        if (dir_)
+            closedir(dir_);
+    }
+
+    directory_iterator& directory_iterator::operator=(const directory_iterator& rhs)
+    {
+        if (this == &rhs)
+            return *this;
+
+        if (dir_)
+            closedir(dir_);
+        if (!rhs.dir_)
+            dir_ = nullptr;
+        else
+        {
+            dir_ = rhs.dir_;
+            curr_ = rhs.curr_;
+
+            rhs.dir_ = nullptr;
+        }
+
+        return *this;
+    }
+
+    directory_iterator& directory_iterator::operator=(directory_iterator&& rhs) noexcept
+    {
+        if (this == &rhs)
+            return *this;
+
+        dir_ = rhs.dir_;
+        curr_ = move(rhs.curr_);
+
+        rhs.dir_ = nullptr;
+        rhs.curr_ = directory_entry{};
+
+        return *this;
+    }
+
+    auto directory_iterator::operator*() const -> reference
+    {
+        if (dir_)
+            return curr_;
+        else
+        {
+            // TODO: error handling
+            return curr_; // <- just temporary to silence compiler
+        }
+    }
+
+    auto directory_iterator::operator->() const -> pointer
+    {
+        if (dir_)
+            return &curr_;
+        else
+        {
+            // TODO: error handling
+            return &curr_; // <- just temporary to silence compiler
+        }
+    }
+
+    directory_iterator directory_iterator::operator++(int)
+    {
+        auto tmp = *this;
+        ++(*this);
+
+        return tmp;
+    }
+
+    directory_iterator& directory_iterator::operator++()
+    {
+        if (dir_)
+        {
+            auto entry = readdir(dir_);
+            if (!entry)
+            {
+                // TODO: error handling
+
+                // Change to end iterator.
+                closedir(dir_);
+                dir_ = nullptr;
+                curr_ = directory_entry{};
+
+                return *this;
+            }
+
+            curr_ = directory_entry{
+                path{string{&entry->d_name[0]}}
+            };
+        }
+
+        return *this;
+    }
+
+    directory_iterator& directory_iterator::increment(error_code& ec) noexcept
+    {
+        if (dir_)
+        {
+            auto entry = readdir(dir_);
+            if (!entry)
+            {
+                // TODO: error handling, this time through ec
+
+                // Change to end iterator.
+                closedir(dir_);
+                dir_ = nullptr;
+                curr_ = directory_entry{};
+
+                return *this;
+            }
+
+            curr_ = directory_entry{
+                path{string{&entry->d_name[0]}}
+            };
+        }
+
+        return *this;
+    }
+
+    bool directory_iterator::operator!=(const directory_iterator& rhs) const noexcept
+    {
+        if (!dir_ && !rhs.dir_)
+            return false; // Two end iterators.
+        if (!dir_ || !rhs.dir_)
+            return true; // End never equals to anything but another end.
+        return curr_ != rhs.curr_;
+    }
+
+    directory_iterator begin(directory_iterator it) noexcept
+    {
+        return it;
+    }
+
+    directory_iterator end(const directory_iterator&) noexcept
+    {
+        return directory_iterator{};
     }
 }

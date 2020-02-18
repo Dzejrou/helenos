@@ -32,6 +32,7 @@
 #include <__bits/io/fs/filesystem.hpp>
 #include <__bits/io/fs/path.hpp>
 #include <cstdlib>
+#include <dirent.h>
 
 namespace std
 {
@@ -126,7 +127,43 @@ namespace std::filesystem
 
     class directory_iterator
     {
-        // TODO:
+        public:
+            using iterator_category = input_iterator_tag;
+            using value_type        = directory_entry;
+            using difference_type   = ptrdiff_t;
+            using pointer           = const directory_entry*;
+            using reference         = const directory_entry&;
+
+            directory_iterator() noexcept;
+            explicit directory_iterator(const path& p);
+            directory_iterator(const path& p, directory_options opts);
+            directory_iterator(const path& p, error_code& ec) noexcept;
+            directory_iterator(const path& p, directory_options opts,
+                               error_code& ec) noexcept;
+
+            directory_iterator(const directory_iterator& rhs);
+            directory_iterator(directory_iterator&& rhs) noexcept;
+            ~directory_iterator();
+
+            directory_iterator& operator=(const directory_iterator& rhs);
+            directory_iterator& operator=(directory_iterator&& rhs) noexcept;
+
+            reference operator*() const;
+            pointer operator->() const;
+            directory_iterator operator++(int);
+            directory_iterator& operator++();
+            directory_iterator& increment(error_code& ec) noexcept;
+            bool operator!=(const directory_iterator& rhs) const noexcept;
+
+        private:
+            /**
+             * This field need to be mutable as during copying
+             * it has to be changed to nullptr in the original
+             * iterator. This is to avoid double free in
+             * closedir caused by that old copy gets destroyed.
+             */
+            mutable DIR* dir_;
+            directory_entry curr_;
     };
 
     /**
@@ -134,7 +171,7 @@ namespace std::filesystem
      */
 
     directory_iterator begin(directory_iterator it) noexcept;
-    directory_iterator end(const directory_iterator& it) noexcept;
+    directory_iterator end(const directory_iterator&) noexcept;
 
     /**
      * [n4659] 30.10.14, recursive directory iterators:
