@@ -36,7 +36,6 @@
 #include <string>
 #include <system_error>
 
-// TODO: add default function arguments
 namespace std::filesystem
 {
     /**
@@ -291,9 +290,11 @@ namespace std::filesystem
      * [n4659] 30.10.15, filesystem operations:
      */
 
-    path absolute(const path& p, const path& base);
+    path current_path();
 
-    path canonical(const path& p, const path& base);
+    path absolute(const path& p, const path& base = current_path());
+
+    path canonical(const path& p, const path& base = current_path());
     path canonical(const path& p, error_code& ec);
     path canonical(const path& p, const path& base, error_code& ec);
 
@@ -395,20 +396,20 @@ namespace std::filesystem
                          error_code& ec) noexcept;
 
     void permissions(const path& p, perms prms,
-                     perm_options opts);
+                     perm_options opts = perm_options::replace);
     void permissions(const path& p, perms prms, error_code& ec) noexcept;
     void permissions(const path& p, perms prms, perm_options opts,
                      error_code& ec) noexcept;
 
     path proximate(const path& p, error_code& ec);
-    path proximate(const path& p, const path& base);
+    path proximate(const path& p, const path& base = current_path());
     path proximate(const path& p, const path& base, error_code& ec);
 
     path read_symlink(const path& p);
     path read_symlink(const path& p, error_code& ec);
 
     path relative(const path& p, error_code& ec);
-    path relative(const path& p, const path& base);
+    path relative(const path& p, const path& base = current_path());
     path relative(const path& p, const path& base, error_code& ec);
 
     bool remove(const path& p);
