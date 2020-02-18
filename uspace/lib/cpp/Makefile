@@ -37,6 +37,7 @@ SOVERSION = 0.0
 -include $(CONFIG_MAKEFILE)
 
 SOURCES = \
+	src/directory.cpp \
 	src/condition_variable.cpp \
 	src/exception.cpp \
 	src/filesystem.cpp \

@@ -27,5 +27,7 @@
  */
 
 #include <__bits/io/fs/directory.hpp>
-#include <__bits/io/fs/filesystem.hpp>
-#include <__bits/io/fs/path.hpp>
+
+namespace std::filesystem
+{
+}

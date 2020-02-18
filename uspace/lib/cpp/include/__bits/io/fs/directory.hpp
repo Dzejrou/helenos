@@ -26,6 +26,54 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <__bits/io/fs/directory.hpp>
-#include <__bits/io/fs/filesystem.hpp>
-#include <__bits/io/fs/path.hpp>
+#ifndef LIBCPP_BITS_IO_FS_DIRECTORY
+#define LIBCPP_BITS_IO_FS_DIRECTORY
+
+namespace std::filesystem
+{
+    /**
+     * [n4659] 30.10.12, directory entries:
+     */
+
+    class directory_entry
+    {
+        // TODO:
+    };
+
+    /**
+     * [n4659] 30.10.13, directory iterators:
+     */
+
+    class directory_iterator
+    {
+        // TODO:
+    };
+
+    /**
+     * [n4659] 30.10.13.2, range access for directory iterators:
+     */
+
+    directory_iterator begin(directory_iterator it) noexcept;
+    directory_iterator end(const directory_iterator& it) noexcept;
+
+    /**
+     * [n4659] 30.10.14, recursive directory iterators:
+     */
+
+    class recursive_directory_iterator
+    {
+        // TODO:
+    };
+
+    /**
+     * [n4659] 30.14.2, range access for recursive directory iterators:
+     */
+
+    recursive_directory_iterator
+    begin(recursive_directory_iterator it) noexcept;
+
+    recursive_directory_iterator
+    end(const recursive_directory_iterator& it) noexcept;
+}
+
+#endif
