@@ -28,6 +28,15 @@
 
 #include <__bits/io/fs/filesystem.hpp>
 #include <cassert>
+#include <string>
+
+namespace helenos
+{ // TODO: Fix this directly in libc.
+    typedef uint64_t aoff64_t;
+    extern "C" {
+        #include <vfs/vfs.h>
+    }
+}
 
 namespace std::filesystem
 {
@@ -244,70 +253,93 @@ namespace std::filesystem
 
     path current_path()
     {
-        // TODO:
-        __unimplemented();
+        char buf[256];
+        auto rc = helenos::vfs_cwd_get(buf, 256U);
+        if (rc != EOK)
+        {
+            assert(rc == ERANGE);
+            throw LIBCPP_FSYSTEM_EXCEPT(errc::result_out_of_range);
+        }
 
-        return {};
+        return path{string{&buf[0]}};
     }
 
     path current_path(error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        char buf[256];
+        auto rc = helenos::vfs_cwd_get(buf, 256U);
+        if (rc != EOK)
+        {
+            LIBCPP_SET_ERRCODE(errc::result_out_of_range);
+            return path{};
+        }
+        else
+            ec.clear();
 
-        return {};
+        return path{string{&buf[0]}};
     }
 
     void current_path(const path& p)
     {
-        // TODO:
-        __unimplemented();
+        auto rc = helenos::vfs_cwd_set(p.string().c_str());
+        if (rc != EOK)
+            LIBCPP_FSYSTEM_THROW(rc, p);
     }
 
     void current_path(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        auto rc = helenos::vfs_cwd_set(p.string().c_str());
+        if (rc != EOK)
+            LIBCPP_SET_ERRCODE(rc);
+        else
+            ec.clear();
     }
 
     bool exists(file_status s) noexcept
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return status_known(s) && s.type() != file_type::not_found;
     }
 
     bool exists(const path& p)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return exists(status(p));
     }
 
     bool exists(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        auto s = status(p);
+        if (status_known(s))
+            ec.clear();
 
-        return {};
+        return exists(s);
     }
 
     bool equivalent(const path& p1, const path& p2)
     {
-        // TODO:
-        __unimplemented();
+        auto s1 = status(p1);
+        auto s2 = status(p2);
 
-        return {};
+        if (!exists(s1) || !exists(s2) || (is_other(s1) && is_other(s2)))
+            LIBCPP_FSYSTEM_THROW(ENOENT, p1, p2);
+
+        // TODO: s1 == s2 and p1 and p2 point to the same place.
+        return false;
     }
 
     bool equivalent(const path& p1, const path& p2, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        auto s1 = status(p1);
+        auto s2 = status(p2);
 
-        return {};
+        if (!exists(s1) || !exists(s2) || (is_other(s1) && is_other(s2)))
+        {
+            LIBCPP_SET_ERRCODE(ENOENT);
+
+            return false;
+        }
+
+        // TODO: s1 == s2 and p1 and p2 point to the same place.
+        return false;
     }
 
     uintmax_t file_size(const path& p)
@@ -344,74 +376,59 @@ namespace std::filesystem
 
     bool is_block_file(file_status s) noexcept
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return s.type() == file_type::block;
     }
 
     bool is_block_file(const path& p)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return is_block_file(status(p));
     }
 
     bool is_block_file(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        auto s = status(p, ec);
 
-        return {};
+        if (!ec)
+            return false;
+        return is_block_file(s);
     }
 
     bool is_character_file(file_status s) noexcept
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return s.type() == file_type::character;
     }
 
     bool is_character_file(const path& p)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return is_character_file(status(p));
     }
 
     bool is_character_file(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        auto s = status(p, ec);
 
-        return {};
+        if (!ec)
+            return false;
+        return is_character_file(s);
     }
 
     bool is_directory(file_status s) noexcept
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return s.type() == file_type::directory;
     }
 
     bool is_directory(const path& p)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return is_directory(status(p));
     }
 
     bool is_directory(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        auto s = status(p, ec);
 
-        return {};
+        if (!ec)
+            return false;
+        return is_directory(s);
     }
 
     bool is_empty(const path& p)
@@ -432,122 +449,98 @@ namespace std::filesystem
 
     bool is_fifo(file_status s) noexcept
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return s.type() == file_type::fifo;
     }
 
     bool is_fifo(const path& p)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return is_fifo(status(p));
     }
 
     bool is_fifo(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        auto s = status(p, ec);
 
-        return {};
+        if (!ec)
+            return false;
+        return is_fifo(s);
     }
 
     bool is_other(file_status s) noexcept
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return exists(s) && !is_regular_file(s) && !is_directory(s)
+            && !is_symlink(s);
     }
 
     bool is_other(const path& p)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return is_other(status(p));
     }
 
     bool is_other(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        auto s = status(p, ec);
 
-        return {};
+        if (!ec)
+            return false;
+        return is_other(s);
     }
 
     bool is_regular_file(file_status s) noexcept
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return s.type() == file_type::regular;
     }
 
     bool is_regular_file(const path& p)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return is_regular_file(status(p));
     }
 
     bool is_regular_file(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        auto s = status(p, ec);
 
-        return {};
+        if (!ec)
+            return false;
+        return is_regular_file(s);
     }
 
     bool is_socket(file_status s) noexcept
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return s.type() == file_type::socket;
     }
 
     bool is_socket(const path& p)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return is_socket(status(p));
     }
 
     bool is_socket(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        auto s = status(p, ec);
 
-        return {};
+        if (!ec)
+            return false;
+        return is_socket(s);
     }
 
     bool is_symlink(file_status s) noexcept
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return s.type() == file_type::symlink;
     }
 
     bool is_symlink(const path& p)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return is_symlink(status(p));
     }
 
     bool is_symlink(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        auto s = status(p, ec);
 
-        return {};
+        if (!ec)
+            return false;
+        return is_symlink(s);
     }
 
     file_time_type last_write_time(const path& p)
@@ -601,26 +594,19 @@ namespace std::filesystem
 
     path proximate(const path& p, error_code& ec)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return proximate(p, current_path(), ec);
     }
 
     path proximate(const path& p, const path& base)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return weakly_canonical(p).
+            lexically_proximate(weakly_canonical(base));
     }
 
     path proximate(const path& p, const path& base, error_code& ec)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return weakly_canonical(p, ec).
+            lexically_proximate(weakly_canonical(base, ec));
     }
 
     path read_symlink(const path& p)

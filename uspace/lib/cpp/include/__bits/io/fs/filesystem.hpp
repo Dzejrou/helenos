@@ -36,6 +36,39 @@
 #include <string>
 #include <system_error>
 
+#define LIBCPP_SET_ERRCODE(code) \
+    ec.assign(static_cast<int>(code), system_category())
+#define LIBCPP_FSYSTEM_EXCEPT(code, ...) \
+    filesystem_error(string{(const char*)#code}, ##__VA_ARGS__, \
+                     error_code(static_cast<int>(code), system_category()))
+
+#define LIBCPP_FSYSTEM_THROW(rc, ...) \
+    do{ \
+    if (rc == ERANGE) \
+        throw LIBCPP_FSYSTEM_EXCEPT(errc::result_out_of_range, ##__VA_ARGS__); \
+    if (rc == ENOMEM) \
+        throw LIBCPP_FSYSTEM_EXCEPT(errc::not_enough_memory, ##__VA_ARGS__); \
+    if (rc == ENOENT) \
+        throw LIBCPP_FSYSTEM_EXCEPT( \
+            errc::no_such_file_or_directory, ##__VA_ARGS__); \
+    } while (false)
+
+#define LIBCPP_SER_ERRC(rc) \
+    do{ \
+    if (rc == ERANGE) \
+        LIBCPP_SET_ERRCODE(errc::result_out_of_range); \
+    if (rc == ENOMEM) \
+        LIBCPP_SET_ERRCODE(errc::not_enough_memory); \
+    if (rc == ENOENT) \
+        LIBCPP_SET_ERRCODE(errc::no_such_file_or_directory); \
+    } while (false)
+
+namespace std::aux
+{
+    void fsystem_throw(errc e);
+    void fsystem_set_errc(errc e, error_code& ec);
+}
+
 namespace std::filesystem
 {
     /**
