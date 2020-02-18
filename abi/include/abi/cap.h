@@ -58,7 +58,7 @@ typedef struct {
 
 static inline bool cap_handle_valid(cap_handle_t handle)
 {
-	return handle != CAP_NIL;
+	return handle != (cap_handle_t)CAP_NIL;
 }
 
 static inline intptr_t cap_handle_raw(cap_handle_t handle)
