@@ -128,24 +128,79 @@ namespace std::filesystem
 
     void copy_file(const path& from, const path& to)
     {
-        // TODO:
-        __unimplemented();
+        copy_file(from, to, copy_options::none);
     }
 
     void copy_file(const path& from, const path& to, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        copy_file(from, to, copy_options::none, ec);
     }
 
-    void copy_file(const path& from, const path& to, copy_options option)
+    namespace aux
     {
-        // TODO:
-        __unimplemented();
+        helenos::errno_t copy_file(const path& from, const path& to)
+        {
+            int f1{}, f2{};
+            auto rc = helenos::vfs_lookup_open(
+                from.c_str(), helenos::WALK_REGULAR,
+                helenos::MODE_READ, &f1);
+            if (rc != EOK)
+                return rc;
+
+            rc = helenos::vfs_lookup_open(
+                to.c_str(), helenos::WALK_REGULAR | helenos::WALK_MAY_CREATE,
+                helenos::MODE_WRITE, &f2);
+            if (rc != EOK)
+                return rc;
+
+            size_t bsize = 4096;
+            char buf[4096];
+            helenos::aoff64_t rpos{}, wpos{};
+            size_t nread{}, nwrite{};
+            while (
+                (rc = helenos::vfs_read(f1, &rpos, buf, bsize, &nread)) == EOK
+                 && nread > 0
+            )
+            {
+                if ((rc = helenos::vfs_write(f2, &wpos, buf, nread, &nwrite))
+                    != EOK)
+                    break;
+            }
+
+            return rc;
+        }
+    }
+
+    void copy_file(const path& from, const path& to, copy_options opts)
+    {
+        // TODO: we don't have status(), so the options below don't work
+        //       but the aux::copy_file function serves well without the checks
+        //       at the moment
+        aux::copy_file(from, to);
+        return;
+        bool existing_is_bad = (opts &
+            (copy_options::skip_existing |
+             copy_options::overwrite_existing |
+             copy_options::update_existing)) == copy_options::none;
+
+        auto exists_to = exists(to);
+        if (!is_regular_file(from) || (exists_to && !is_regular_file(to)) ||
+            (exists_to && equivalent(from, to)) ||
+            (exists_to && existing_is_bad))
+            LIBCPP_FSYSTEM_THROW(EEXIST, from, to);
+
+        auto overwrite = (opts & copy_options::overwrite_existing)
+            != copy_options::none;
+        auto update = (opts & copy_options::update_existing)
+            != copy_options::none;
+        bool from_more_recent_than_to = true; // No modify timestamp.
+
+        if (!exists_to || overwrite || (update && from_more_recent_than_to))
+            aux::copy_file(from, to);
     }
 
     void copy_file(const path& from, const path& to,
-                   copy_options option, error_code& ec) noexcept
+                   copy_options opts, error_code& ec) noexcept
     {
         // TODO:
         __unimplemented();
@@ -181,35 +236,47 @@ namespace std::filesystem
 
     bool create_directory(const path& p)
     {
-        // TODO:
-        __unimplemented();
+        auto rc = helenos::vfs_link_path(
+            p.c_str(), helenos::KIND_DIRECTORY, nullptr
+        );
 
-        return {};
+        if (rc == EEXIST)
+            return false;
+        if (rc != EOK)
+            LIBCPP_FSYSTEM_THROW(rc, p);
+
+        return true;
     }
 
-    bool create_directory(const path& p, const error_code& ec)
+    bool create_directory(const path& p, error_code& ec)
     {
-        // TODO:
-        __unimplemented();
+        auto rc = helenos::vfs_link_path(
+            p.c_str(), helenos::KIND_DIRECTORY, nullptr
+        );
 
-        return {};
+        if (rc == EEXIST)
+            return false;
+        if (rc != EOK)
+            LIBCPP_SET_ERRCODE(rc, ec);
+        else
+            ec.clear();
+
+        return true;
     }
 
     bool create_directory(const path& p, const path& attrib)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        // TODO: Do we even have attributes or rather way to copy them?
+        //       Doesn't really matters as they are OS dependent.
+        return create_directory(p);
     }
 
     bool create_directory(const path& p, const path& attrib,
                           error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        // TODO: Do we even have attributes or rather way to copy them?
+        //       Doesn't really matters as they are OS dependent.
+        return create_directory(p, ec);
     }
 
     void create_directory_symlink(const path& to, const path& new_symlink)
@@ -256,10 +323,7 @@ namespace std::filesystem
         char buf[256];
         auto rc = helenos::vfs_cwd_get(buf, 256U);
         if (rc != EOK)
-        {
-            assert(rc == ERANGE);
-            throw LIBCPP_FSYSTEM_EXCEPT(errc::result_out_of_range);
-        }
+            LIBCPP_FSYSTEM_THROW(rc);
 
         return path{string{&buf[0]}};
     }
@@ -270,7 +334,7 @@ namespace std::filesystem
         auto rc = helenos::vfs_cwd_get(buf, 256U);
         if (rc != EOK)
         {
-            LIBCPP_SET_ERRCODE(errc::result_out_of_range);
+            LIBCPP_SET_ERRCODE(rc, ec);
             return path{};
         }
         else
@@ -281,16 +345,16 @@ namespace std::filesystem
 
     void current_path(const path& p)
     {
-        auto rc = helenos::vfs_cwd_set(p.string().c_str());
+        auto rc = helenos::vfs_cwd_set(p.c_str());
         if (rc != EOK)
             LIBCPP_FSYSTEM_THROW(rc, p);
     }
 
     void current_path(const path& p, error_code& ec) noexcept
     {
-        auto rc = helenos::vfs_cwd_set(p.string().c_str());
+        auto rc = helenos::vfs_cwd_set(p.c_str());
         if (rc != EOK)
-            LIBCPP_SET_ERRCODE(rc);
+            LIBCPP_SET_ERRCODE(rc, ec);
         else
             ec.clear();
     }
@@ -333,10 +397,12 @@ namespace std::filesystem
 
         if (!exists(s1) || !exists(s2) || (is_other(s1) && is_other(s2)))
         {
-            LIBCPP_SET_ERRCODE(ENOENT);
+            LIBCPP_SET_ERRCODE(ENOENT, ec);
 
             return false;
         }
+        else
+            ec.clear();
 
         // TODO: s1 == s2 and p1 and p2 point to the same place.
         return false;
@@ -683,26 +749,59 @@ namespace std::filesystem
 
     void rename(const path& from, const path& to)
     {
-        // TODO:
-        __unimplemented();
+        if (from != to)
+        {
+            auto rc = helenos::vfs_rename_path(from.c_str(), to.c_str());
+            if (rc != EOK)
+                LIBCPP_FSYSTEM_THROW(rc, from, to);
+        }
     }
 
     void rename(const path& from, const path& to, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        if (from != to)
+        {
+            auto rc = helenos::vfs_rename_path(from.c_str(), to.c_str());
+            if (rc != EOK)
+                LIBCPP_SET_ERRCODE(rc, ec);
+            else
+                ec.clear();
+        }
     }
 
     void resize_file(const path& p, uintmax_t size)
     {
-        // TODO:
-        __unimplemented();
+        int handle{};
+        auto rc = helenos::vfs_lookup(
+            p.c_str(), helenos::WALK_REGULAR, &handle
+        );
+        if (rc != EOK)
+            LIBCPP_FSYSTEM_THROW(rc, p);
+
+        rc = helenos::vfs_resize(handle, (helenos::aoff64_t)size);
+        if (rc != EOK)
+            LIBCPP_FSYSTEM_THROW(rc, p);
     }
 
     void resize_file(const path& p, uintmax_t size, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        int handle{};
+        auto rc = helenos::vfs_lookup(
+            p.c_str(), helenos::WALK_REGULAR, &handle
+        );
+        if (rc != EOK)
+        {
+            LIBCPP_SET_ERRCODE(rc, ec);
+            return;
+        }
+        else
+            ec.clear();
+
+        rc = helenos::vfs_resize(handle, (helenos::aoff64_t)size);
+        if (rc != EOK)
+            LIBCPP_SET_ERRCODE(rc, ec);
+        else
+            ec.clear();
     }
 
     space_info space(const path& p)

@@ -30,13 +30,15 @@
 #define LIBCPP_BITS_IO_FS_FILESYSTEM
 
 #include <__bits/io/fs/path.hpp>
+#include <__bits/trycatch.hpp>
+#include <cassert>
 #include <chrono>
 #include <cstdlib>
 #include <locale>
 #include <string>
 #include <system_error>
 
-#define LIBCPP_SET_ERRCODE(code) \
+#define LIBCPP_SET_ERRCODE(code, ec) \
     ec.assign(static_cast<int>(code), system_category())
 #define LIBCPP_FSYSTEM_EXCEPT(code, ...) \
     filesystem_error(string{(const char*)#code}, ##__VA_ARGS__, \
@@ -51,16 +53,19 @@
     if (rc == ENOENT) \
         throw LIBCPP_FSYSTEM_EXCEPT( \
             errc::no_such_file_or_directory, ##__VA_ARGS__); \
+    assert(!"Unhandled FS return code."); \
     } while (false)
 
-#define LIBCPP_SER_ERRC(rc) \
+#define LIBCPP_SER_ERRC(rc, ec) \
     do{ \
     if (rc == ERANGE) \
-        LIBCPP_SET_ERRCODE(errc::result_out_of_range); \
-    if (rc == ENOMEM) \
-        LIBCPP_SET_ERRCODE(errc::not_enough_memory); \
-    if (rc == ENOENT) \
-        LIBCPP_SET_ERRCODE(errc::no_such_file_or_directory); \
+        LIBCPP_SET_ERRCODE(errc::result_out_of_range, ec); \
+    else if (rc == ENOMEM) \
+        LIBCPP_SET_ERRCODE(errc::not_enough_memory, ec); \
+    else if (rc == ENOENT) \
+        LIBCPP_SET_ERRCODE(errc::no_such_file_or_directory, ec); \
+    else \
+        assert(!"Unhandled FS return code."); \
     } while (false)
 
 namespace std::aux
@@ -339,9 +344,9 @@ namespace std::filesystem
 
     void copy_file(const path& from, const path& to);
     void copy_file(const path& from, const path& to, error_code& ec) noexcept;
-    void copy_file(const path& from, const path& to, copy_options option);
+    void copy_file(const path& from, const path& to, copy_options opts);
     void copy_file(const path& from, const path& to,
-                   copy_options option, error_code& ec) noexcept;
+                   copy_options opts, error_code& ec) noexcept;
 
     void copy_symlink(const path& from, const path& to);
     void copy_symlink(const path& from, const path& to, error_code& ec) noexcept;
@@ -350,7 +355,7 @@ namespace std::filesystem
     bool create_directories(const path& p, error_code& ec) noexcept;
 
     bool create_directory(const path& p);
-    bool create_directory(const path& p, const error_code& ec);
+    bool create_directory(const path& p, error_code& ec);
 
     bool create_directory(const path& p, const path& attrib);
     bool create_directory(const path& p, const path& attrib,
