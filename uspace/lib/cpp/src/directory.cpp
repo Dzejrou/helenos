@@ -285,15 +285,11 @@ namespace std::filesystem
     {
         dir_ = opendir(p.string().c_str());
         if (!dir_)
-        {
-            // TODO: error handling
-        }
+            LIBCPP_FSYSTEM_THROW(errno, p);
 
         auto* curr_dirent = readdir(dir_);
         if (!curr_dirent)
-        {
-            // TODO: error handling
-        }
+            LIBCPP_FSYSTEM_THROW(errno, p);
 
         curr_ = directory_entry{
             path{string{&curr_dirent->d_name[0]}}
@@ -305,8 +301,9 @@ namespace std::filesystem
         : directory_iterator{p}
     {
         /**
-         * TODO: Check if we can actually support the options.
-         * (Follow symlinks & ignore permission denied.)
+         * HelenOS does not seem to support permissions and
+         * symlinks, so we're ignoring directory options as those
+         * are the only two directory options supported by C++.
          */
     }
 
@@ -317,13 +314,17 @@ namespace std::filesystem
         dir_ = opendir(p.string().c_str());
         if (!dir_)
         {
-            // TODO: error handling, this time with ec
+            LIBCPP_SET_ERRCODE(errno, ec);
+
+            return;
         }
 
         auto* curr_dirent = readdir(dir_);
         if (!curr_dirent)
         {
-            // TODO: error handling, this time with ec
+            LIBCPP_SET_ERRCODE(errno, ec);
+
+            return;
         }
 
         curr_ = directory_entry{
@@ -337,8 +338,9 @@ namespace std::filesystem
         : directory_iterator{p, ec}
     {
         /**
-         * TODO: Check if we can actually support the options.
-         * (Follow symlinks & ignore permission denied.)
+         * HelenOS does not seem to support permissions and
+         * symlinks, so we're ignoring directory options as those
+         * are the only two directory options supported by C++.
          */
     }
 
@@ -405,24 +407,12 @@ namespace std::filesystem
 
     auto directory_iterator::operator*() const -> reference
     {
-        if (dir_)
-            return curr_;
-        else
-        {
-            // TODO: error handling
-            return curr_; // <- just temporary to silence compiler
-        }
+        return curr_;
     }
 
     auto directory_iterator::operator->() const -> pointer
     {
-        if (dir_)
-            return &curr_;
-        else
-        {
-            // TODO: error handling
-            return &curr_; // <- just temporary to silence compiler
-        }
+        return &curr_;
     }
 
     directory_iterator directory_iterator::operator++(int)
@@ -440,14 +430,17 @@ namespace std::filesystem
             auto entry = readdir(dir_);
             if (!entry)
             {
-                // TODO: error handling
+                if (errno != ENOENT)
+                    LIBCPP_FSYSTEM_THROW(errno);
+                else
+                {
+                    // Change to end iterator.
+                    closedir(dir_);
+                    dir_ = nullptr;
+                    curr_ = directory_entry{};
 
-                // Change to end iterator.
-                closedir(dir_);
-                dir_ = nullptr;
-                curr_ = directory_entry{};
-
-                return *this;
+                    return *this;
+                }
             }
 
             curr_ = directory_entry{
@@ -465,14 +458,17 @@ namespace std::filesystem
             auto entry = readdir(dir_);
             if (!entry)
             {
-                // TODO: error handling, this time through ec
+                if (errno != ENOENT)
+                    LIBCPP_SET_ERRCODE(errno, ec);
+                else
+                {
+                    // Change to end iterator.
+                    closedir(dir_);
+                    dir_ = nullptr;
+                    curr_ = directory_entry{};
 
-                // Change to end iterator.
-                closedir(dir_);
-                dir_ = nullptr;
-                curr_ = directory_entry{};
-
-                return *this;
+                    return *this;
+                }
             }
 
             curr_ = directory_entry{
