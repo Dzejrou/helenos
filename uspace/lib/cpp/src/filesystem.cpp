@@ -514,18 +514,26 @@ namespace std::filesystem
 
     uintmax_t file_size(const path& p)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
 
-        return {};
+        auto res = file_size(p, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
+
+        return res;
     }
 
     uintmax_t file_size(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        helenos::vfs_stat_t nstatus{};
 
-        return {};
+        auto s = aux::status(p, ec, nstatus);
+        if (!exists(s))
+            LIBCPP_SET_ERRCODE(ENOENT, ec);
+        if (ec.value() != EOK)
+            return static_cast<uintmax_t>(-1);
+
+        return static_cast<uintmax_t>(nstatus.size);
     }
 
     uintmax_t hard_link_count(const path& p)
@@ -910,18 +918,36 @@ namespace std::filesystem
 
     space_info space(const path& p)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
 
-        return {};
+        auto res = space(p, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
+
+        return res;
     }
 
     space_info space(const path& p, error_code& ec)
     {
-        // TODO:
-        __unimplemented();
+        helenos::vfs_statfs_t s{};
 
-        return {};
+        auto rc = helenos::vfs_statfs_path(p.c_str(), &s);
+        if (rc != EOK)
+        {
+            LIBCPP_SET_ERRCODE(rc, ec);
+
+            return space_info{
+                static_cast<uintmax_t>(-1),
+                static_cast<uintmax_t>(-1),
+                static_cast<uintmax_t>(-1)
+            };
+        }
+
+        return space_info{
+            s.f_blocks * s.f_bsize,
+            s.f_bfree * s.f_bsize,
+            (s.f_blocks * s.f_bsize) - (s.f_bfree * s.f_bsize)
+        };
     }
 
     file_status status(const path& p)
@@ -975,10 +1001,13 @@ namespace std::filesystem
 
     path weakly_canonical(const path& p)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
 
-        return {};
+        auto res = weakly_canonical(p, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
+
+        return res;
     }
 
     path weakly_canonical(const path& p, error_code& ec)
