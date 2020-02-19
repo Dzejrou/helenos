@@ -31,10 +31,11 @@
 #include <string>
 
 namespace helenos
-{ // TODO: Fix this directly in libc.
+{ // TODO: jzr made a commit fixing this
     typedef uint64_t aoff64_t;
     extern "C" {
         #include <vfs/vfs.h>
+        #include <vfs/canonify.h>
     }
 }
 
@@ -69,58 +70,110 @@ namespace std::filesystem
         return msg_.c_str();
     }
 
-    path absolute(const path& p, const path& base)
+    namespace aux
     {
-        // TODO:
-        __unimplemented();
+        /**
+         * This is an auxilliary status function that in
+         * addition to the behaviour requested by
+         * std::filesystem::status() also returns the HelenOS
+         * specific stat structure to avoid redundant calls to
+         * vfs_stat() when we need something besides the
+         * type of a file.
+         */
+        file_status status(const path& p, error_code& ec,
+                           helenos::vfs_stat_t& stat) noexcept
+        {
+            if (p.empty())
+                return file_status{file_type::none};
 
-        return {};
+            auto rc = helenos::vfs_stat_path(p.c_str(), &stat);
+            if (rc != EOK)
+            {
+                LIBCPP_SET_ERRCODE(rc, ec);
+
+                return file_status{file_type::not_found};
+            }
+            else
+                ec.clear();
+
+            file_type ftype{file_type::unknown};
+            if (stat.is_file)
+                ftype = file_type::regular;
+            if (stat.is_directory)
+                ftype = file_type::directory;
+
+            return file_status{ftype};
+        }
+    }
+
+    path absolute(const path& p)
+    {
+        return current_path() / p;
+    }
+
+    path absolute(const path& p, error_code&)
+    {
+        return current_path() / p;
     }
 
     path canonical(const path& p, const path& base)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
 
-        return {};
+        auto res = canonical(p, base, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
+
+        return res;
     }
 
     path canonical(const path& p, error_code& ec)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return canonical(p, current_path(), ec);
     }
 
     path canonical(const path& p, const path& base, error_code& ec)
     {
-        // TODO:
-        __unimplemented();
+        auto full_path = p / base;
+        size_t len{};
 
-        return {};
+        auto* res_ptr = helenos::canonify(
+            strndup(full_path.c_str(), full_path.native().size()), &len
+        );
+        if (!res_ptr)
+        {
+            LIBCPP_SET_ERRCODE(ENOENT, ec);
+
+            return path{};
+        }
+
+        path res{string{res_ptr, len}};
+        free(res_ptr);
+
+        return res;
     }
 
     void copy(const path& from, const path& to)
     {
-        // TODO:
-        __unimplemented();
+        copy(from, to, copy_options::none);
     }
 
     void copy(const path& from, const path& to, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        copy(from, to, copy_options::none, ec);
     }
 
-    void copy(const path& from, const path& to, copy_options option)
+    void copy(const path& from, const path& to, copy_options opts)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
+
+        copy(from, to, opts, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), from, to);
     }
 
     void copy(const path& from, const path& to,
-              copy_options option, error_code& ec) noexcept
+              copy_options opts, error_code& ec) noexcept
     {
         // TODO:
         __unimplemented();
@@ -173,11 +226,16 @@ namespace std::filesystem
 
     void copy_file(const path& from, const path& to, copy_options opts)
     {
-        // TODO: we don't have status(), so the options below don't work
-        //       but the aux::copy_file function serves well without the checks
-        //       at the moment
-        aux::copy_file(from, to);
-        return;
+        error_code ec{};
+
+        copy_file(from, to, opts, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), from, to);
+    }
+
+    void copy_file(const path& from, const path& to,
+                   copy_options opts, error_code& ec) noexcept
+    {
         bool existing_is_bad = (opts &
             (copy_options::skip_existing |
              copy_options::overwrite_existing |
@@ -187,7 +245,7 @@ namespace std::filesystem
         if (!is_regular_file(from) || (exists_to && !is_regular_file(to)) ||
             (exists_to && equivalent(from, to)) ||
             (exists_to && existing_is_bad))
-            LIBCPP_FSYSTEM_THROW(EEXIST, from, to);
+            LIBCPP_SET_ERRCODE(EEXIST, ec);
 
         auto overwrite = (opts & copy_options::overwrite_existing)
             != copy_options::none;
@@ -196,14 +254,11 @@ namespace std::filesystem
         bool from_more_recent_than_to = true; // No modify timestamp.
 
         if (!exists_to || overwrite || (update && from_more_recent_than_to))
-            aux::copy_file(from, to);
-    }
-
-    void copy_file(const path& from, const path& to,
-                   copy_options opts, error_code& ec) noexcept
-    {
-        // TODO:
-        __unimplemented();
+        {
+            auto rc = aux::copy_file(from, to);
+            if (rc != EOK)
+                LIBCPP_SET_ERRCODE(rc, ec);
+        }
     }
 
     void copy_symlink(const path& from, const path& to)
@@ -220,18 +275,61 @@ namespace std::filesystem
 
     bool create_directories(const path& p)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
 
-        return {};
+        auto res = create_directories(p, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
+
+        return res;
     }
 
     bool create_directories(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        if (p.empty())
+            return false;
 
-        return {};
+        bool res{};
+        const auto& native = p.native();
+
+        size_t start{};
+        if (native[0U] == path::preferred_separator)
+            ++start;
+
+        for (size_t idx = start; idx < native.size(); ++idx)
+        {
+            if (native[idx] == path::preferred_separator)
+            {
+                res = true;
+
+                size_t size = (idx - start > 2U ? idx - start : 1U);
+                auto rc = helenos::vfs_link_path(
+                    native.substr(start, size).c_str(),
+                    helenos::KIND_DIRECTORY, nullptr
+                );
+                if (rc != EOK)
+                {
+                    LIBCPP_SET_ERRCODE(rc, ec);
+
+                    return false;
+                }
+            }
+        }
+
+        if (native[native.size() - 1] != '/')
+        {
+            auto rc = helenos::vfs_link_path(
+                native.c_str(), helenos::KIND_DIRECTORY, nullptr
+            );
+            if (rc != EOK)
+            {
+                LIBCPP_SET_ERRCODE(rc, ec);
+
+                return false;
+            }
+        }
+
+        return res;
     }
 
     bool create_directory(const path& p)
@@ -380,32 +478,38 @@ namespace std::filesystem
 
     bool equivalent(const path& p1, const path& p2)
     {
-        auto s1 = status(p1);
-        auto s2 = status(p2);
+        error_code ec{};
 
-        if (!exists(s1) || !exists(s2) || (is_other(s1) && is_other(s2)))
-            LIBCPP_FSYSTEM_THROW(ENOENT, p1, p2);
+        auto res = equivalent(p1, p2, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p1, p2);
 
-        // TODO: s1 == s2 and p1 and p2 point to the same place.
-        return false;
+        return res;
     }
 
     bool equivalent(const path& p1, const path& p2, error_code& ec) noexcept
     {
-        auto s1 = status(p1);
-        auto s2 = status(p2);
+        helenos::vfs_stat_t nstatus1{}, nstatus2{};
+        error_code ec1{}, ec2{};
+
+        auto s1 = aux::status(p1, ec1, nstatus1);
+        if (!ec1)
+            LIBCPP_SET_ERRCODE(ec1.value(), ec);
+
+        auto s2 = aux::status(p2, ec2, nstatus2);
+        if (!ec2)
+            LIBCPP_SET_ERRCODE(ec2.value(), ec);
 
         if (!exists(s1) || !exists(s2) || (is_other(s1) && is_other(s2)))
-        {
             LIBCPP_SET_ERRCODE(ENOENT, ec);
 
+        if (s1.type() != s2.type() || s1.permissions() != s2.permissions())
             return false;
-        }
-        else
-            ec.clear();
+        if (nstatus1.fs_handle != nstatus2.fs_handle ||
+            nstatus1.index != nstatus2.index)
+            return false;
 
-        // TODO: s1 == s2 and p1 and p2 point to the same place.
-        return false;
+        return true;
     }
 
     uintmax_t file_size(const path& p)
@@ -833,35 +937,14 @@ namespace std::filesystem
 
     file_status status(const path& p, error_code& ec) noexcept
     {
-        if (p.empty())
-            return file_status{file_type::none};
         helenos::vfs_stat_t res{};
 
-        auto rc = helenos::vfs_stat_path(p.c_str(), &res);
-        if (rc != EOK)
-        {
-            LIBCPP_SET_ERRCODE(rc, ec);
-
-            return file_status{file_type::not_found};
-        }
-        else
-            ec.clear();
-
-        file_type ftype{file_type::unknown};
-        if (res.is_file)
-            ftype = file_type::regular;
-        if (res.is_directory)
-            ftype = file_type::directory;
-
-        return file_status{ftype};
+        return aux::status(p, ec, res);
     }
 
     bool status_known(file_status s) noexcept
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return s.type() != file_type::none;
     }
 
     file_status symlink_status(const path& p)
@@ -882,18 +965,12 @@ namespace std::filesystem
 
     path temp_directory_path()
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return path{string{"/tmp"}};
     }
 
     path temp_directory_path(error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return path{string{"/tmp"}};
     }
 
     path weakly_canonical(const path& p)

@@ -334,7 +334,8 @@ namespace std::filesystem
 
     path current_path();
 
-    path absolute(const path& p, const path& base = current_path());
+    path absolute(const path& p);
+    path absolute(const path& p, error_code& ec);
 
     path canonical(const path& p, const path& base = current_path());
     path canonical(const path& p, error_code& ec);
@@ -342,9 +343,9 @@ namespace std::filesystem
 
     void copy(const path& from, const path& to);
     void copy(const path& from, const path& to, error_code& ec) noexcept;
-    void copy(const path& from, const path& to, copy_options option);
+    void copy(const path& from, const path& to, copy_options opts);
     void copy(const path& from, const path& to,
-              copy_options option, error_code& ec) noexcept;
+              copy_options opts, error_code& ec) noexcept;
 
     void copy_file(const path& from, const path& to);
     void copy_file(const path& from, const path& to, error_code& ec) noexcept;
