@@ -822,18 +822,38 @@ namespace std::filesystem
 
     file_status status(const path& p)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
 
-        return {};
+        auto res = status(p, ec);
+        if (res.type() == file_type::none)
+            LIBCPP_FSYSTEM_THROW(ENOENT, p);
+
+        return res;
     }
 
     file_status status(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        if (p.empty())
+            return file_status{file_type::none};
+        helenos::vfs_stat_t res{};
 
-        return {};
+        auto rc = helenos::vfs_stat_path(p.c_str(), &res);
+        if (rc != EOK)
+        {
+            LIBCPP_SET_ERRCODE(rc, ec);
+
+            return file_status{file_type::not_found};
+        }
+        else
+            ec.clear();
+
+        file_type ftype{file_type::unknown};
+        if (res.is_file)
+            ftype = file_type::regular;
+        if (res.is_directory)
+            ftype = file_type::directory;
+
+        return file_status{ftype};
     }
 
     bool status_known(file_status s) noexcept
