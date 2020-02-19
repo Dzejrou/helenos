@@ -33,6 +33,7 @@
 #include <__bits/io/fs/path.hpp>
 #include <cstdlib>
 #include <dirent.h>
+#include <stack>
 
 namespace std
 {
@@ -179,7 +180,58 @@ namespace std::filesystem
 
     class recursive_directory_iterator
     {
-        // TODO:
+        public:
+            using iterator_category = input_iterator_tag;
+            using value_type        = directory_entry;
+            using difference_type   = ptrdiff_t;
+            using pointer           = const directory_entry*;
+            using reference         = const directory_entry&;
+
+            recursive_directory_iterator() noexcept;
+            explicit recursive_directory_iterator(const path& p);
+            recursive_directory_iterator(const path& p, directory_options opts);
+            recursive_directory_iterator(const path& p, directory_options opts,
+                                         error_code& ec) noexcept;
+            recursive_directory_iterator(const path& p, error_code& ec) noexcept;
+
+            recursive_directory_iterator(
+                const recursive_directory_iterator& rhs);
+            recursive_directory_iterator(
+                recursive_directory_iterator&& rhs) noexcept;
+            ~recursive_directory_iterator();
+
+            recursive_directory_iterator&
+            operator=(const recursive_directory_iterator& rhs);
+            recursive_directory_iterator&
+            operator=(recursive_directory_iterator&& rhs) noexcept;
+
+            directory_options options() const;
+            int depth() const;
+            bool recursion_pending() const;
+
+            reference operator*() const;
+            pointer operator->() const;
+            recursive_directory_iterator operator++(int);
+            recursive_directory_iterator& operator++();
+            recursive_directory_iterator& increment(error_code& ec) noexcept;
+            bool operator!=(const recursive_directory_iterator& rhs)
+                const noexcept;
+
+            void pop();
+            void pop(error_code& ec) noexcept;
+            void disable_recursion_pending();
+
+        private:
+            directory_options opts_;
+            bool rec_pending_;
+
+            mutable DIR* dir_;
+            directory_entry curr_;
+
+            std::stack<DIR*> dir_stack_{};
+
+            bool should_enter_subdir_() const;
+            int increment_();
     };
 
     /**
@@ -190,7 +242,7 @@ namespace std::filesystem
     begin(recursive_directory_iterator it) noexcept;
 
     recursive_directory_iterator
-    end(const recursive_directory_iterator& it) noexcept;
+    end(const recursive_directory_iterator&) noexcept;
 }
 
 #endif

@@ -53,6 +53,8 @@
     if (rc == ENOENT) \
         throw LIBCPP_FSYSTEM_EXCEPT( \
             errc::no_such_file_or_directory, ##__VA_ARGS__); \
+    if (rc == ENOTDIR) \
+        throw LIBCPP_FSYSTEM_EXCEPT(errc::not_a_directory, ##__VA_ARGS__); \
     assert(!"Unhandled FS return code."); \
     } while (false)
 
@@ -64,6 +66,8 @@
         LIBCPP_SET_ERRCODE(errc::not_enough_memory, ec); \
     else if (rc == ENOENT) \
         LIBCPP_SET_ERRCODE(errc::no_such_file_or_directory, ec); \
+    else if (rc == ENOTDIR) \
+        LIBCPP_SET_ERRCODE(errc::not_a_directory, ec); \
     else \
         assert(!"Unhandled FS return code."); \
     } while (false)

@@ -328,7 +328,7 @@ namespace std::filesystem
         }
 
         curr_ = directory_entry{
-            path{string{&curr_dirent->d_name[0]}}
+            path{string{&curr_dirent->d_name[0]}}, ec
         };
     }
 
@@ -472,7 +472,7 @@ namespace std::filesystem
             }
 
             curr_ = directory_entry{
-                path{string{&entry->d_name[0]}}
+                path{string{&entry->d_name[0]}}, ec
             };
         }
 
@@ -496,5 +496,332 @@ namespace std::filesystem
     directory_iterator end(const directory_iterator&) noexcept
     {
         return directory_iterator{};
+    }
+
+    recursive_directory_iterator::recursive_directory_iterator() noexcept
+        : opts_{directory_options::none}, rec_pending_{false}, dir_{}, curr_{}
+    { /* DUMMY BODY */ }
+
+    recursive_directory_iterator::recursive_directory_iterator(const path& p)
+        : recursive_directory_iterator{p, directory_options::none}
+    { /* DUMMY BODY */ }
+
+    recursive_directory_iterator::recursive_directory_iterator(
+        const path& p, directory_options opts)
+        : opts_{opts}, rec_pending_{true}, dir_{}, curr_{}
+    {
+        dir_ = opendir(p.string().c_str());
+        if (!dir_)
+            LIBCPP_FSYSTEM_THROW(errno, p);
+
+        auto* curr_dirent = readdir(dir_);
+        if (!curr_dirent)
+            LIBCPP_FSYSTEM_THROW(errno, p);
+
+        curr_ = directory_entry{
+            path{string{&curr_dirent->d_name[0]}}
+        };
+    }
+
+    recursive_directory_iterator::recursive_directory_iterator(
+        const path& p, directory_options opts, error_code& ec) noexcept
+        : opts_{opts}, rec_pending_{true}, dir_{}, curr_{}
+    {
+        dir_ = opendir(p.string().c_str());
+        if (!dir_)
+        {
+            LIBCPP_SET_ERRCODE(errno, ec);
+
+            return;
+        }
+
+        auto* curr_dirent = readdir(dir_);
+        if (!curr_dirent)
+        {
+            LIBCPP_SET_ERRCODE(errno, ec);
+
+            return;
+        }
+
+        curr_ = directory_entry{
+            path{string{&curr_dirent->d_name[0]}}, ec
+        };
+    }
+
+    recursive_directory_iterator::recursive_directory_iterator(
+        const path& p, error_code& ec) noexcept
+        : recursive_directory_iterator{p, directory_options::none, ec}
+    { /* DUMMY BODY */ }
+
+    recursive_directory_iterator::recursive_directory_iterator(
+        const recursive_directory_iterator& rhs)
+        : opts_{rhs.opts_}, rec_pending_{rhs.rec_pending_},
+          dir_{rhs.dir_}, curr_{rhs.curr_}, dir_stack_{rhs.dir_stack_}
+    {
+        rhs.dir_ = nullptr; // To avoid double free, rhs is invalid.
+    }
+
+    recursive_directory_iterator::recursive_directory_iterator(
+        recursive_directory_iterator&& rhs) noexcept
+        : opts_{rhs.opts_}, rec_pending_{rhs.rec_pending_},
+          dir_{rhs.dir_}, curr_{move(rhs.curr_)},
+          dir_stack_{move(rhs.dir_stack_)}
+    {
+        rhs.dir_ = nullptr;
+    }
+
+    recursive_directory_iterator::~recursive_directory_iterator()
+    {
+        if (dir_)
+            closedir(dir_);
+
+        while (dir_stack_.size() > 0U)
+        {
+            closedir(dir_stack_.top());
+            dir_stack_.pop();
+        }
+    }
+
+    recursive_directory_iterator&
+    recursive_directory_iterator::operator=(
+        const recursive_directory_iterator& rhs)
+    {
+        opts_ = rhs.opts_;
+        rec_pending_ = rhs.rec_pending_;
+        dir_ = rhs.dir_;
+        curr_ = rhs.curr_;
+        dir_stack_ = rhs.dir_stack_;
+
+        rhs.dir_ = nullptr; // To avoid double free, rhs is invalid.
+
+        return *this;
+    }
+
+    recursive_directory_iterator&
+    recursive_directory_iterator::operator=(
+        recursive_directory_iterator&& rhs) noexcept
+    {
+        opts_ = rhs.opts_;
+        rec_pending_ = rhs.rec_pending_;
+        dir_ = rhs.dir_;
+        curr_ = move(rhs.curr_);
+        dir_stack_ = move(rhs.dir_stack_);
+
+        rhs.dir_ = nullptr;
+
+        return *this;
+    }
+
+    directory_options recursive_directory_iterator::options() const
+    {
+        return opts_;
+    }
+
+    int recursive_directory_iterator::depth() const
+    {
+        return const_cast<recursive_directory_iterator&>(*this)
+            .dir_stack_.size() + 1; // +1 for the current one.
+    }
+
+    bool recursive_directory_iterator::recursion_pending() const
+    {
+        return rec_pending_;
+    }
+
+    auto recursive_directory_iterator::operator*() const -> reference
+    {
+        return curr_;
+    }
+
+    auto recursive_directory_iterator::operator->() const -> pointer
+    {
+        return &curr_;
+    }
+
+    recursive_directory_iterator recursive_directory_iterator::operator++(int)
+    {
+        auto tmp = *this;
+        ++(*this);
+
+        return tmp;
+    }
+
+    recursive_directory_iterator& recursive_directory_iterator::operator++()
+    {
+        auto rc = increment_();
+        if (rc != EOK)
+            LIBCPP_FSYSTEM_THROW(rc, curr_);
+
+        return *this;
+    }
+
+    recursive_directory_iterator&
+    recursive_directory_iterator::increment(error_code& ec) noexcept
+    {
+        auto rc = increment_();
+        if (rc != EOK)
+            LIBCPP_SET_ERRCODE(rc, ec);
+
+        return *this;
+    }
+
+    bool recursive_directory_iterator::operator!=(
+        const recursive_directory_iterator& rhs) const noexcept
+    {
+        if (!dir_ && !rhs.dir_)
+            return false; // Two end iterators.
+        if (!dir_ || !rhs.dir_)
+            return true; // End never equals to anything but another end.
+        return curr_ != rhs.curr_;
+    }
+
+    void recursive_directory_iterator::pop()
+    {
+        if (dir_)
+            closedir(dir_);
+
+        if (dir_stack_.size() > 0U)
+        {
+            dir_ = dir_stack_.top();
+            dir_stack_.pop();
+
+            // Read the next uncle.
+            auto* curr_dirent = readdir(dir_);
+            if (!curr_dirent)
+            {
+                if (errno == ENOENT)
+                { // This directory is the last in its parent.
+                    pop();
+
+                    return;
+                }
+
+                LIBCPP_FSYSTEM_THROW(errno);
+            }
+
+            curr_ = directory_entry{
+                path{string{&curr_dirent->d_name[0]}}
+            };
+        }
+        else
+            *this = recursive_directory_iterator{};
+    }
+
+    void recursive_directory_iterator::pop(error_code& ec) noexcept
+    {
+        if (dir_)
+            closedir(dir_);
+
+        if (dir_stack_.size() > 0U)
+        {
+            dir_ = dir_stack_.top();
+            dir_stack_.pop();
+
+            // Read the next uncle.
+            auto* curr_dirent = readdir(dir_);
+            if (!curr_dirent)
+            {
+                if (errno == ENOENT)
+                { // This directory is the last in its parent.
+                    pop(ec);
+
+                    return;
+                }
+
+                LIBCPP_SET_ERRCODE(errno, ec);
+
+                return;
+            }
+
+            curr_ = directory_entry{
+                path{string{&curr_dirent->d_name[0]}}, ec
+            };
+        }
+        else
+            *this = recursive_directory_iterator{};
+    }
+
+    void recursive_directory_iterator::disable_recursion_pending()
+    {
+        rec_pending_ = false;
+    }
+
+    bool recursive_directory_iterator::should_enter_subdir_() const
+    {
+        if (rec_pending_ && is_directory(curr_.status()))
+            return true;
+
+        /**
+         * Here should also be check if curr_ is a symlink and
+         * opts_ does contain follow_directory_symlink.
+         */
+
+        return false;
+    }
+
+    int recursive_directory_iterator::increment_()
+    {
+        if (dir_)
+        {
+            auto entry = readdir(dir_);
+            if (!entry)
+            {
+                if (errno != ENOENT)
+                    return errno;
+                if (dir_stack_.size() > 0U)
+                    pop();
+                else
+                {
+                    // Change to end iterator.
+                    closedir(dir_);
+                    dir_ = nullptr;
+                    curr_ = directory_entry{};
+                }
+
+                return EOK;
+            }
+
+            curr_ = directory_entry{
+                path{string{&entry->d_name[0]}}
+            };
+
+            if (should_enter_subdir_())
+            {
+                dir_stack_.push(dir_);
+                dir_ = opendir(curr_.path().c_str());
+                if (!dir_)
+                    return errno;
+
+                auto entry = readdir(dir_);
+                if (!entry)
+                {
+                    if (errno != ENOENT)
+                        return errno;
+                    pop();
+
+                    return EOK;
+                }
+
+                curr_ = directory_entry{
+                    path{string{&entry->d_name[0]}}
+                };
+            }
+
+            rec_pending_ = true;
+        }
+
+        return EOK;
+    }
+
+    recursive_directory_iterator
+    begin(recursive_directory_iterator it) noexcept
+    {
+        return it;
+    }
+
+    recursive_directory_iterator
+    end(const recursive_directory_iterator&) noexcept
+    {
+        return recursive_directory_iterator{};
     }
 }
