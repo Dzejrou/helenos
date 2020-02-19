@@ -620,7 +620,7 @@ namespace std::filesystem
     int recursive_directory_iterator::depth() const
     {
         return const_cast<recursive_directory_iterator&>(*this)
-            .dir_stack_.size() + 1; // +1 for the current one.
+            .dir_stack_.size();
     }
 
     bool recursive_directory_iterator::recursion_pending() const
