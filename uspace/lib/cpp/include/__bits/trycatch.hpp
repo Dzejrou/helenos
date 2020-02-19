@@ -103,7 +103,7 @@ extern int __exception;
 #define LIBCPP_EXCEPTION_HANG         while (true);
 #define LIBCPP_EXCEPTION_ABORT        ::std::abort();
 #define LIBCPP_EXCEPTION_IGNORE       /* IGNORE */
-#define LIBCPP_EXCEPTION_HANDLE_THROW LIBCPP_EXCEPTION_IGNORE
+#define LIBCPP_EXCEPTION_HANDLE_THROW LIBCPP_EXCEPTION_ABORT
 #define LIBCPP_EXCEPTION_HANDLE_CATCH LIBCPP_EXCEPTION_ABORT
 
 #define try if constexpr (::std::aux::try_blocks_allowed)
