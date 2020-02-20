@@ -263,14 +263,16 @@ namespace std::filesystem
 
     void copy_symlink(const path& from, const path& to)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
+
+        copy_symlink(from, to, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), from, to);
     }
 
     void copy_symlink(const path& from, const path& to, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        LIBCPP_SET_ERRCODE(ENOTSUP, ec);
     }
 
     bool create_directories(const path& p)
@@ -334,16 +336,13 @@ namespace std::filesystem
 
     bool create_directory(const path& p)
     {
-        auto rc = helenos::vfs_link_path(
-            p.c_str(), helenos::KIND_DIRECTORY, nullptr
-        );
+        error_code ec{};
 
-        if (rc == EEXIST)
-            return false;
-        if (rc != EOK)
-            LIBCPP_FSYSTEM_THROW(rc, p);
+        auto res = create_directory(p, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
 
-        return true;
+        return res;
     }
 
     bool create_directory(const path& p, error_code& ec)
@@ -364,66 +363,79 @@ namespace std::filesystem
 
     bool create_directory(const path& p, const path& attrib)
     {
-        // TODO: Do we even have attributes or rather way to copy them?
-        //       Doesn't really matters as they are OS dependent.
+        /**
+         * HelenOS does not have attributes that could be
+         * copied from the second argument, but that is allowed
+         * by the standard as all attributed are OS dependent.
+         */
         return create_directory(p);
     }
 
     bool create_directory(const path& p, const path& attrib,
                           error_code& ec) noexcept
     {
-        // TODO: Do we even have attributes or rather way to copy them?
-        //       Doesn't really matters as they are OS dependent.
+        /**
+         * HelenOS does not have attributes that could be
+         * copied from the second argument, but that is allowed
+         * by the standard as all attributed are OS dependent.
+         */
         return create_directory(p, ec);
     }
 
     void create_directory_symlink(const path& to, const path& new_symlink)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
+
+        create_directory_symlink(to, new_symlink, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), to, new_symlink);
     }
 
     void create_directory_symlink(const path& to, const path& new_symlink,
                                   error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        LIBCPP_SET_ERRCODE(ENOTSUP, ec);
     }
 
     void create_hard_link(const path& to, const path& new_hard_link)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
+
+        create_hard_link(to, new_hard_link, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), to, new_hard_link);
     }
 
     void create_hard_link(const path& to, const path& new_hard_link,
                           error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        LIBCPP_SET_ERRCODE(ENOTSUP, ec);
     }
 
     void create_symlink(const path& to, const path& new_symlink)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
+
+        create_symlink(to, new_symlink, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), to, new_symlink);
     }
 
     void create_symlink(const path& to, const path& new_symlink,
                         error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        LIBCPP_SET_ERRCODE(ENOTSUP, ec);
     }
 
     path current_path()
     {
-        char buf[256];
-        auto rc = helenos::vfs_cwd_get(buf, 256U);
-        if (rc != EOK)
-            LIBCPP_FSYSTEM_THROW(rc);
+        error_code ec{};
 
-        return path{string{&buf[0]}};
+        auto res = current_path(ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value());
+
+        return res;
     }
 
     path current_path(error_code& ec) noexcept
@@ -443,9 +455,11 @@ namespace std::filesystem
 
     void current_path(const path& p)
     {
-        auto rc = helenos::vfs_cwd_set(p.c_str());
-        if (rc != EOK)
-            LIBCPP_FSYSTEM_THROW(rc, p);
+        error_code ec{};
+
+        current_path(p, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
     }
 
     void current_path(const path& p, error_code& ec) noexcept
@@ -538,18 +552,20 @@ namespace std::filesystem
 
     uintmax_t hard_link_count(const path& p)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
 
-        return {};
+        auto res = hard_link_count(p, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
+
+        return res;
     }
 
     uintmax_t hard_link_count(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        LIBCPP_SET_ERRCODE(ENOTSUP, ec);
 
-        return {};
+        return static_cast<uintmax_t>(-1);
     }
 
     bool is_block_file(file_status s) noexcept
@@ -611,10 +627,13 @@ namespace std::filesystem
 
     bool is_empty(const path& p)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
 
-        return {};
+        auto res = is_empty(p, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
+
+        return res;
     }
 
     bool is_empty(const path& p, error_code& ec) noexcept
@@ -723,51 +742,56 @@ namespace std::filesystem
 
     file_time_type last_write_time(const path& p)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
 
-        return {};
+        auto res = last_write_time(p, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
+
+        return res;
     }
 
     file_time_type last_write_time(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        LIBCPP_SET_ERRCODE(ENOTSUP, ec);
 
-        return {};
+        return file_time_type::min();
     }
 
     void last_write_time(const path& p, file_time_type new_time)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
+
+        last_write_time(p, new_time, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
     }
 
     void last_write_time(const path& p, file_time_type new_time,
                          error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        LIBCPP_SET_ERRCODE(ENOTSUP, ec);
     }
 
     void permissions(const path& p, perms prms,
                      perm_options opts)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
+
+        permissions(p, prms, opts, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
     }
 
     void permissions(const path& p, perms prms, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        permissions(p, prms, perm_options::replace, ec);
     }
 
     void permissions(const path& p, perms prms, perm_options opts,
                      error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        LIBCPP_SET_ERRCODE(ENOTSUP, ec);
     }
 
     path proximate(const path& p, error_code& ec)
@@ -789,66 +813,70 @@ namespace std::filesystem
 
     path read_symlink(const path& p)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
 
-        return {};
+        auto res = read_symlink(p, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value());
+
+        return res;
     }
 
     path read_symlink(const path& p, error_code& ec)
     {
-        // TODO:
-        __unimplemented();
+        LIBCPP_SET_ERRCODE(ENOTSUP, ec);
 
-        return {};
+        return path{};
     }
 
     path relative(const path& p, error_code& ec)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return relative(p, current_path(), ec);
     }
 
     path relative(const path& p, const path& base)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return weakly_canonical(p).
+            lexically_relative(weakly_canonical(base));
     }
 
     path relative(const path& p, const path& base, error_code& ec)
     {
-        // TODO:
-        __unimplemented();
-
-        return {};
+        return weakly_canonical(p, ec).
+            lexically_relative(weakly_canonical(base, ec));
     }
 
     bool remove(const path& p)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
 
-        return {};
+        auto res = remove(p, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
+
+        return res;
     }
 
     bool remove(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        auto rc = helenos::vfs_unlink_path(p.c_str());
+        if (rc == ENOENT)
+            return false;
+        if (rc != EOK)
+            LIBCPP_SET_ERRCODE(rc, ec);
 
-        return {};
+        return true;
     }
 
     uintmax_t remove_all(const path& p)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
 
-        return {};
+        auto res = remove_all(p, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
+
+        return res;
     }
 
     uintmax_t remove_all(const path& p, error_code& ec) noexcept
@@ -861,12 +889,11 @@ namespace std::filesystem
 
     void rename(const path& from, const path& to)
     {
-        if (from != to)
-        {
-            auto rc = helenos::vfs_rename_path(from.c_str(), to.c_str());
-            if (rc != EOK)
-                LIBCPP_FSYSTEM_THROW(rc, from, to);
-        }
+        error_code ec{};
+
+        rename(from, to, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), from, to);
     }
 
     void rename(const path& from, const path& to, error_code& ec) noexcept
@@ -883,16 +910,11 @@ namespace std::filesystem
 
     void resize_file(const path& p, uintmax_t size)
     {
-        int handle{};
-        auto rc = helenos::vfs_lookup(
-            p.c_str(), helenos::WALK_REGULAR, &handle
-        );
-        if (rc != EOK)
-            LIBCPP_FSYSTEM_THROW(rc, p);
+        error_code ec{};
 
-        rc = helenos::vfs_resize(handle, (helenos::aoff64_t)size);
-        if (rc != EOK)
-            LIBCPP_FSYSTEM_THROW(rc, p);
+        resize_file(p, size, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
     }
 
     void resize_file(const path& p, uintmax_t size, error_code& ec) noexcept
@@ -957,6 +979,8 @@ namespace std::filesystem
         auto res = status(p, ec);
         if (res.type() == file_type::none)
             LIBCPP_FSYSTEM_THROW(ENOENT, p);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
 
         return res;
     }
@@ -975,18 +999,20 @@ namespace std::filesystem
 
     file_status symlink_status(const path& p)
     {
-        // TODO:
-        __unimplemented();
+        error_code ec{};
 
-        return {};
+        auto res = symlink_status(p, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p);
+
+        return res;
     }
 
     file_status symlink_status(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        LIBCPP_SET_ERRCODE(ENOTSUP, ec);
 
-        return {};
+        return file_status{file_type::unknown};
     }
 
     path temp_directory_path()
