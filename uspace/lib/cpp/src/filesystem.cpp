@@ -1011,9 +1011,11 @@ namespace std::filesystem
 
     file_status symlink_status(const path& p, error_code& ec) noexcept
     {
-        LIBCPP_SET_ERRCODE(ENOTSUP, ec);
-
-        return file_status{file_type::unknown};
+        /**
+         * We don't have symlinks, so symlink_status()
+         * behaves exactly as status().
+         */
+        return status(p, ec);
     }
 
     path temp_directory_path()
