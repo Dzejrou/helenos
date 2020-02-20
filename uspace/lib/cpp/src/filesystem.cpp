@@ -899,10 +899,37 @@ namespace std::filesystem
 
     uintmax_t remove_all(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        constexpr static uintmax_t err_val(-1);
+        uintmax_t res{};
 
-        return {};
+        auto s = status(p, ec);
+        if (ec.value() != EOK)
+            return err_val;
+
+        if (is_regular_file(s))
+            return remove(p, ec) ? uintmax_t{1U} : uintmax_t{};
+        else
+        { // Directory.
+            directory_iterator it{p, ec}, end{};
+            if (ec.value() != EOK)
+                return err_val;
+
+            while (it != end)
+            {
+                res += remove_all(p / it->path(), ec);
+                if (ec.value() != EOK)
+                    return err_val;
+                ++it;
+            }
+
+            if (remove(p, ec))
+                ++res;
+        }
+
+        if (ec.value() != EOK)
+            return static_cast<uintmax_t>(-1);
+        else
+            return res;
     }
 
     void rename(const path& from, const path& to)

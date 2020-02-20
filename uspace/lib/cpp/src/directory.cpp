@@ -289,7 +289,16 @@ namespace std::filesystem
 
         auto* curr_dirent = readdir(dir_);
         if (!curr_dirent)
+        {
+            if (errno == ENOENT)
+            {
+                *this = directory_iterator{};
+
+                return;
+            }
+
             LIBCPP_FSYSTEM_THROW(errno, p);
+        }
 
         curr_ = directory_entry{
             path{string{&curr_dirent->d_name[0]}}
@@ -322,6 +331,12 @@ namespace std::filesystem
         auto* curr_dirent = readdir(dir_);
         if (!curr_dirent)
         {
+            if (ec.value() == EOK)
+            { // Empty directory.
+                *this = directory_iterator{};
+
+                return;
+            }
             LIBCPP_SET_ERRCODE(errno, ec);
 
             return;
@@ -519,6 +534,7 @@ namespace std::filesystem
         if (!dir_)
             LIBCPP_FSYSTEM_THROW(errno, p);
 
+        // TODO: errno EOK when the dir is empty?
         auto* curr_dirent = readdir(dir_);
         if (!curr_dirent)
             LIBCPP_FSYSTEM_THROW(errno, p);
@@ -540,6 +556,7 @@ namespace std::filesystem
             return;
         }
 
+        // TODO: errno EOK when the dir is empty?
         auto* curr_dirent = readdir(dir_);
         if (!curr_dirent)
         {
