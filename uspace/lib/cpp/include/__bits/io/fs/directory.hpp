@@ -166,6 +166,7 @@ namespace std::filesystem
              */
             mutable DIR* dir_;
             directory_entry curr_;
+            path dir_path_;
     };
 
     /**

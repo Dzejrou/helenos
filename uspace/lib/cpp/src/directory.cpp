@@ -281,7 +281,7 @@ namespace std::filesystem
     { /* DUMMY BODY */ }
 
     directory_iterator::directory_iterator(const path& p)
-        : dir_{}, curr_{}
+        : dir_{}, curr_{}, dir_path_{p}
     {
         dir_ = opendir(p.string().c_str());
         if (!dir_)
@@ -301,7 +301,7 @@ namespace std::filesystem
         }
 
         curr_ = directory_entry{
-            path{string{&curr_dirent->d_name[0]}}
+            dir_path_ / path{string{&curr_dirent->d_name[0]}}
         };
     }
 
@@ -318,7 +318,7 @@ namespace std::filesystem
 
     directory_iterator::directory_iterator(const path& p, error_code& ec)
         noexcept
-        : dir_{}
+        : dir_{}, curr_{}, dir_path_{p}
     {
         dir_ = opendir(p.string().c_str());
         if (!dir_)
@@ -343,7 +343,7 @@ namespace std::filesystem
         }
 
         curr_ = directory_entry{
-            path{string{&curr_dirent->d_name[0]}}, ec
+            dir_path_ / path{string{&curr_dirent->d_name[0]}}, ec
         };
     }
 
@@ -360,7 +360,7 @@ namespace std::filesystem
     }
 
     directory_iterator::directory_iterator(const directory_iterator& rhs)
-        : dir_{}, curr_{rhs.curr_}
+        : dir_{}, curr_{rhs.curr_}, dir_path_{rhs.dir_path_}
     {
         if (!rhs.dir_)
             dir_ = nullptr;
@@ -374,7 +374,7 @@ namespace std::filesystem
     }
 
     directory_iterator::directory_iterator(directory_iterator&& rhs) noexcept
-        : dir_{rhs.dir_}, curr_{move(rhs.curr_)}
+        : dir_{rhs.dir_}, curr_{move(rhs.curr_)}, dir_path_{move(rhs.dir_path_)}
     {
         rhs.dir_ = nullptr;
         rhs.curr_ = directory_entry{};
@@ -399,6 +399,7 @@ namespace std::filesystem
         {
             dir_ = rhs.dir_;
             curr_ = rhs.curr_;
+            dir_path_ = rhs.dir_path_;
 
             rhs.dir_ = nullptr;
         }
@@ -413,6 +414,7 @@ namespace std::filesystem
 
         dir_ = rhs.dir_;
         curr_ = move(rhs.curr_);
+        dir_path_ = move(rhs.dir_path_);
 
         rhs.dir_ = nullptr;
         rhs.curr_ = directory_entry{};
@@ -459,7 +461,7 @@ namespace std::filesystem
             }
 
             curr_ = directory_entry{
-                path{string{&entry->d_name[0]}}
+                dir_path_ / path{string{&entry->d_name[0]}}
             };
         }
 
@@ -487,7 +489,7 @@ namespace std::filesystem
             }
 
             curr_ = directory_entry{
-                path{string{&entry->d_name[0]}}, ec
+                dir_path_ / path{string{&entry->d_name[0]}}, ec
             };
         }
 
