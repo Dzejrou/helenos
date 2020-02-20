@@ -378,6 +378,7 @@ namespace std
                 allocator_traits<Allocator>::construct(allocator_,
                                                        begin() + size_, forward<Args>(args)...);
 
+                ++size_;
                 return back();
             }
 
@@ -397,8 +398,11 @@ namespace std
 
             void pop_back()
             {
-                destroy_from_end_until_(end() - 1);
-                --size_;
+                if (size_ > 0U)
+                {
+                    destroy_from_end_until_(end() - 1);
+                    --size_;
+                }
             }
 
             template<class... Args>
