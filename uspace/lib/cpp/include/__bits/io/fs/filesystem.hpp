@@ -57,6 +57,8 @@
         throw LIBCPP_FSYSTEM_EXCEPT(errc::not_a_directory, ##__VA_ARGS__); \
     if (rc == ENOTSUP) \
         throw LIBCPP_FSYSTEM_EXCEPT(errc::operation_not_supported, ##__VA_ARGS__); \
+    if (rc == EINVAL) \
+        throw LIBCPP_FSYSTEM_EXCEPT(errc::invalid_argument, ##__VA_ARGS__); \
     assert(!"Unhandled FS return code."); \
     } while (false)
 
@@ -72,6 +74,8 @@
         LIBCPP_SET_ERRCODE(errc::not_a_directory, ec); \
     else if (rc == ENOTSUP) \
         LIBCPP_SET_ERRCODE(errc::operation_not_supported, ec); \
+    else if (rc == EINVAL) \
+        LIBCPP_SET_ERRCODE(errc::invalid_argument, ec); \
     else \
         assert(!"Unhandled FS return code."); \
     } while (false)

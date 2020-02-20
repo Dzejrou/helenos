@@ -176,8 +176,41 @@ namespace std::filesystem
     void copy(const path& from, const path& to,
               copy_options opts, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        auto s1 = status(from, ec);
+        auto s2 = status(to, ec);
+        ec.clear();
+
+        if (!exists(s1) || equivalent(from, to, ec) ||
+            (is_other(s1) && is_other(s2)) ||
+            (is_directory(s1) && is_regular_file(s2)))
+        {
+            LIBCPP_SET_ERRCODE(EINVAL, ec);
+
+            return;
+        }
+        ec.clear();
+
+        if (is_regular_file(s1))
+        {
+            if ((opts & copy_options::directories_only) != copy_options::none)
+                return;
+            if (is_directory(s2))
+                copy_file(from, to / from.filename(), opts, ec);
+            else
+                copy_file(from, to, opts, ec);
+        }
+        else if (is_directory(s1) &&
+                 ((opts & copy_options::recursive) != copy_options::none ||
+                 opts == copy_options::none))
+        {
+            if (!exists(s2))
+                create_directory(to, from, ec);
+
+            for (const directory_entry& entry: directory_iterator{from})
+                copy(entry.path(), to / entry.path().filename(), ec);
+        }
+        else
+            ec.clear();
     }
 
     void copy_file(const path& from, const path& to)
@@ -237,6 +270,7 @@ namespace std::filesystem
     void copy_file(const path& from, const path& to,
                    copy_options opts, error_code& ec) noexcept
     {
+        // TODO: Use ec versions of exists etc, maybe use status directly!
         bool existing_is_bad = (opts &
             (copy_options::skip_existing |
              copy_options::overwrite_existing |
@@ -1024,7 +1058,7 @@ namespace std::filesystem
         auto res = status(p, ec);
         if (res.type() == file_type::none)
             LIBCPP_FSYSTEM_THROW(ENOENT, p);
-        if (ec.value() != EOK)
+        if (ec.value() != EOK && ec.value() != ENOENT)
             LIBCPP_FSYSTEM_THROW(ec.value(), p);
 
         return res;
