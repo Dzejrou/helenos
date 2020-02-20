@@ -479,6 +479,11 @@ namespace std::filesystem
         return *this;
     }
 
+    bool directory_iterator::operator==(const directory_iterator& rhs) const noexcept
+    {
+        return !(*this != rhs);
+    }
+
     bool directory_iterator::operator!=(const directory_iterator& rhs) const noexcept
     {
         if (!dir_ && !rhs.dir_)

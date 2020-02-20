@@ -26,6 +26,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <__bits/io/fs/directory.hpp>
 #include <__bits/io/fs/filesystem.hpp>
 #include <cassert>
 #include <string>
@@ -639,10 +640,26 @@ namespace std::filesystem
 
     bool is_empty(const path& p, error_code& ec) noexcept
     {
-        // TODO:
-        __unimplemented();
+        auto s = status(p, ec);
+        if (ec.value() != EOK)
+            return false;
 
-        return {};
+        if (s.type() == file_type::directory)
+        {
+            directory_iterator it{p, ec};
+            if (ec.value() != EOK)
+                return false;
+            else
+                return it == directory_iterator{};
+        }
+        else
+        {
+            auto size = file_size(p, ec);
+            if (ec.value() != EOK)
+                return false;
+            else
+                return size == 0;
+        }
     }
 
     bool is_fifo(file_status s) noexcept

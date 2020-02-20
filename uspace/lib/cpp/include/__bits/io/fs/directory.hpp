@@ -154,6 +154,7 @@ namespace std::filesystem
             directory_iterator operator++(int);
             directory_iterator& operator++();
             directory_iterator& increment(error_code& ec) noexcept;
+            bool operator==(const directory_iterator& rhs) const noexcept;
             bool operator!=(const directory_iterator& rhs) const noexcept;
 
         private:
