@@ -113,7 +113,8 @@ namespace std::filesystem
                 path_ = LIBCPP_CONVERT_ENC_RANGE(first, last, loc);
             }
 
-            ~path() = default;
+            ~path()
+            { /* DUMMY BODY */ }
 
             /**
              * [n4659] 30.10.8.4.2, assignments:
