@@ -29,6 +29,7 @@
 #include <__bits/io/fs/path.hpp>
 #include <__bits/utility/forward_move.hpp>
 #include <__bits/functional/hash.hpp>
+#include <algorithm>
 #include <vector>
 
 namespace std::filesystem
@@ -378,10 +379,47 @@ namespace std::filesystem
 
     path path::lexically_relative(const path& base) const
     {
-        // TODO:
-        __unimplemented();
+        if (root_name() != base.root_name() ||
+            is_absolute() != base.is_absolute() ||
+            (!has_root_directory() && base.has_root_directory()))
+            return path{};
 
-        return {};
+        auto our_end = end();
+        auto base_end = base.end();
+        auto [miss, base_miss] = mismatch(
+            begin(), our_end,
+            base.begin(), base_end
+        );
+
+        if (miss == our_end && base_miss == base_end)
+            return path{"."};
+
+        auto tmp = base_miss;
+        int non_dot_cnt{};
+        int double_dot_cnt{};
+        while (tmp != base_end)
+        {
+            if (tmp->native() != "." && tmp->native() != "..")
+                ++non_dot_cnt;
+            if (tmp->native() == "..")
+                ++double_dot_cnt;
+            ++tmp;
+        }
+
+        auto n = non_dot_cnt - double_dot_cnt;
+        if (n < 0)
+            return path{};
+
+        path res{};
+        for (int i = 0; i < n; ++i)
+            res /= path{".."};
+        while (miss != our_end)
+        {
+            res /= *miss;
+            ++miss;
+        }
+
+        return res;
     }
 
     path path::lexically_proximate(const path& base) const
