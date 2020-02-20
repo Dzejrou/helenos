@@ -1085,9 +1085,27 @@ namespace std::filesystem
 
     path weakly_canonical(const path& p, error_code& ec)
     {
-        // TODO:
-        __unimplemented();
+        path res{};
+        auto it = p.begin();
+        auto end = p.end();
+        while(it != end)
+        { // Find longest existing prefix.
+            auto s = status(res / *it, ec);
+            if (!exists(s))
+                break;
 
-        return {};
+            res /= *it;
+            ++it;
+        }
+        ec.clear(); // Set to ENOENT in the last iteration.
+
+        res = canonical(res, ec);
+        while (it != end)
+        {
+            res /= *it;
+            ++it;
+        }
+
+        return res;
     }
 }
