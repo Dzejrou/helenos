@@ -363,12 +363,13 @@ namespace std::filesystem
 
     bool create_directory(const path& p, const path& attrib)
     {
-        /**
-         * HelenOS does not have attributes that could be
-         * copied from the second argument, but that is allowed
-         * by the standard as all attributed are OS dependent.
-         */
-        return create_directory(p);
+        error_code ec{};
+
+        auto res = create_directory(p, attrib, ec);
+        if (ec.value() != EOK)
+            LIBCPP_FSYSTEM_THROW(ec.value(), p, attrib);
+
+        return res;
     }
 
     bool create_directory(const path& p, const path& attrib,
