@@ -29,6 +29,7 @@
 #include <__bits/io/fs/path.hpp>
 #include <__bits/utility/forward_move.hpp>
 #include <__bits/functional/hash.hpp>
+#include <vector>
 
 namespace std::filesystem
 {
@@ -350,10 +351,29 @@ namespace std::filesystem
 
     path path::lexically_normal() const
     {
-        // TODO:
-        __unimplemented();
+        if (empty())
+            return path{};
 
-        return {};
+        vector<string_type> stack{};
+
+        auto it = begin();
+        while (it != end())
+        {
+            if (it->path_ == "..")
+                stack.pop_back();
+            else if (it->path_ != ".")
+                stack.emplace_back(it->path_);
+            ++it;
+        }
+
+        path res{};
+        for (const auto& s: stack)
+            res /= path{s};
+
+        if (res.empty())
+            return path{"."};
+        else
+            return res;
     }
 
     path path::lexically_relative(const path& base) const
@@ -443,14 +463,16 @@ namespace std::filesystem
 
     bool path::iterator::operator==(const path::iterator& it)
     {
-        // 1) Default initialized iterators are equal.
-        if (!elements_ && !it.elements_)
+        // 1) Default initialized iterators  and end iterators are equal.
+        if ((!elements_ && !it.elements_) ||
+            (idx_ == size_ && it.idx_ == it.size_))
             return true;
-        else if (!elements_ || !it.elements_)
+        else if (!elements_ || !it.elements_ ||
+                 idx_ == size_ || it.idx_ == it.size_)
             return false;
 
         // 2) Check the actual path.
-        if (size_ == it.size_)
+        if (size_ == it.size_ && idx_ == it.idx_)
         {
             for (size_t i = 0U; i < size_; ++i)
             {
